@@ -1,0 +1,430 @@
+/* ===========================
+   SECURE AUTH SCREEN
+   =========================== */
+
+.secure-auth-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  position: relative;
+}
+
+.secure-auth-panel {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(10, 12, 20, 0.85);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 48px 40px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.secure-auth-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(20, 255, 157, 0.4),
+      transparent);
+}
+
+/* ===========================
+   HEADER
+   =========================== */
+
+.secure-auth-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.secure-logo {
+  display: inline-flex;
+  margin-bottom: 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.secure-auth-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, #f5f7fb 0%, #9ea3b0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.secure-auth-header p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ===========================
+   FORM
+   =========================== */
+
+.secure-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ea3b0;
+  margin-bottom: -12px;
+  display: block;
+  letter-spacing: 0.2px;
+}
+
+.input-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-field input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(15, 18, 28, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  font-size: 15px;
+  color: #f5f7fb;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+}
+
+.input-field input::placeholder {
+  color: #4b5563;
+}
+
+.input-field input:focus {
+  border-color: rgba(20, 255, 157, 0.4);
+  background: rgba(15, 18, 28, 0.8);
+  box-shadow: 0 0 0 3px rgba(20, 255, 157, 0.08);
+}
+
+.input-field input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 48px;
+}
+
+.icon-button {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.icon-button:active {
+  transform: scale(0.95);
+}
+
+/* ===========================
+   ENCRYPTION PILL
+   =========================== */
+
+.encryption-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(20, 255, 157, 0.08);
+  border: 1px solid rgba(20, 255, 157, 0.2);
+  border-radius: 24px;
+  font-size: 13px;
+  color: #14ff9d;
+  font-weight: 500;
+  align-self: flex-start;
+  margin-top: -8px;
+}
+
+.encryption-pill svg {
+  flex-shrink: 0;
+}
+
+/* ===========================
+   BUTTONS
+   =========================== */
+
+.primary-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #14ff9d 0%, #00c676 100%);
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #05060a;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(20, 255, 157, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent);
+  transition: left 0.5s;
+}
+
+.primary-btn:hover::before {
+  left: 100%;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(20, 255, 157, 0.3);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 8px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.divider span {
+  padding: 0 16px;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.biometric-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #f5f7fb;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.biometric-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.biometric-btn:active {
+  transform: translateY(0);
+}
+
+.biometric-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ghost-toggle {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  color: #9ea3b0;
+  cursor: pointer;
+  transition: color 0.2s;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.ghost-toggle:hover {
+  color: #14ff9d;
+}
+
+.ghost-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===========================
+   QR SECTION
+   =========================== */
+
+.qr-section {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.qr-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f5f7fb;
+  margin: 0 0 20px;
+}
+
+.qr-image {
+  width: 220px;
+  height: 220px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.qr-helper {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+
+/* ===========================
+   SECURITY FOOTNOTES
+   =========================== */
+
+.security-footnotes {
+  list-style: none;
+  padding: 0;
+  margin: 32px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 440px;
+}
+
+.security-footnotes li {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.security-footnotes li::before {
+  content: '✓';
+  color: #14ff9d;
+  font-weight: 700;
+}
+
+/* ===========================
+   RESPONSIVE
+   =========================== */
+
+@media (max-width: 480px) {
+  .secure-auth-panel {
+    padding: 36px 24px;
+    border-radius: 20px;
+  }
+
+  .secure-auth-header h1 {
+    font-size: 28px;
+  }
+
+  .security-footnotes {
+    gap: 8px;
+  }
+
+  .security-footnotes li {
+    font-size: 11px;
+    padding: 5px 12px;
+  }
+}
+
+/* ===========================
+   ANIMATIONS
+   =========================== */
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.secure-auth-panel {
+  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}

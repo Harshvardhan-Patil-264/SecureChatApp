@@ -1,0 +1,1113 @@
+/* client/src/components/UltraSecureChat/UltraSecureChat.css */
+/* Styles for Ultra Secure Chat components */
+
+/* ============================================================================
+   MODAL OVERLAY & CONTAINER
+   ============================================================================ */
+
+.uss-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: uss-fade-in 0.2s ease;
+}
+
+@keyframes uss-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.uss-modal {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: uss-slide-up 0.3s ease;
+    color: #e0e0e0;
+}
+
+@keyframes uss-slide-up {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ============================================================================
+   MODAL HEADER
+   ============================================================================ */
+
+.uss-modal-header {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    padding: 24px;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 2px solid #00d4ff;
+    position: relative;
+}
+
+.uss-modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #00d4ff;
+}
+
+.uss-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.uss-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+
+
+/* ============================================================================
+   FORM ELEMENTS
+   ============================================================================ */
+
+.uss-modal-body {
+    padding: 24px;
+}
+
+.uss-form-group {
+    margin-bottom: 20px;
+}
+
+.uss-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #00d4ff;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.uss-input,
+.uss-select {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 15px;
+    transition: all 0.3s;
+}
+
+.uss-input:focus,
+.uss-select:focus {
+    outline: none;
+    border-color: #00d4ff;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.uss-input-large {
+    font-size: 18px;
+    padding: 16px;
+}
+
+.uss-select {
+    cursor: pointer;
+}
+
+.uss-select option {
+    background: #16213e;
+    color: #fff;
+}
+
+/* Password Input with Toggle */
+.uss-password-input {
+    position: relative;
+}
+
+.uss-password-input input {
+    padding-right: 50px;
+}
+
+.uss-toggle-visibility {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.uss-toggle-visibility:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================================
+   STRENGTH METER
+   ============================================================================ */
+
+.uss-strength-meter {
+    margin-top: 12px;
+}
+
+.uss-strength-bar-container {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.uss-strength-bar {
+    height: 100%;
+    transition: all 0.3s ease;
+    border-radius: 3px;
+}
+
+.uss-strength-bar.uss-strength-weak {
+    background: linear-gradient(90deg, #ff4444, #ff6b6b);
+}
+
+.uss-strength-bar.uss-strength-medium {
+    background: linear-gradient(90deg, #ffa500, #ffcc00);
+}
+
+.uss-strength-bar.uss-strength-strong {
+    background: linear-gradient(90deg, #00ff88, #00d4ff);
+}
+
+.uss-strength-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.uss-strength-label.uss-strength-weak {
+    color: #ff6b6b;
+}
+
+.uss-strength-label.uss-strength-medium {
+    color: #ffcc00;
+}
+
+.uss-strength-label.uss-strength-strong {
+    color: #00ff88;
+}
+
+/* ============================================================================
+   REQUIREMENTS CHECKLIST
+   ============================================================================ */
+
+.uss-requirements {
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.uss-req-met,
+.uss-req-unmet {
+    padding: 6px 0;
+    transition: all 0.2s;
+}
+
+.uss-req-met {
+    color: #00ff88;
+}
+
+.uss-req-unmet {
+    color: #888;
+}
+
+/* Match Indicators */
+.uss-match-success {
+    color: #00ff88;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.uss-match-error {
+    color: #ff6b6b;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+
+
+/* ============================================================================
+   MODAL FOOTER
+   ============================================================================ */
+
+.uss-modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.uss-btn-cancel,
+.uss-btn-create,
+.uss-btn-verify,
+.uss-btn-primary,
+.uss-btn-secondary {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.uss-btn-cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.uss-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.uss-btn-create,
+.uss-btn-verify,
+.uss-btn-primary {
+    background: linear-gradient(135deg, #00d4ff, #00ff88);
+    color: #0a0a0a;
+    font-weight: 600;
+}
+
+.uss-btn-create:hover,
+.uss-btn-verify:hover,
+.uss-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+}
+
+.uss-btn-create:disabled,
+.uss-btn-verify:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.uss-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #00d4ff;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.uss-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ============================================================================
+   PASSPHRASE ENTRY SCREEN
+   ============================================================================ */
+
+.uss-passphrase-entry {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.uss-passphrase-container {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(0, 212, 255, 0.2);
+}
+
+.uss-passphrase-header {
+    text-align: center;
+    padding: 32px 24px;
+    border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+}
+
+.uss-lock-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: uss-pulse 2s infinite;
+}
+
+@keyframes uss-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.uss-passphrase-header h2 {
+    margin: 0 0 8px 0;
+    color: #00d4ff;
+    font-size: 28px;
+}
+
+.uss-session-info {
+    color: #b0b0b0;
+    font-size: 14px;
+    margin: 0;
+}
+
+.uss-session-info strong {
+    color: #00ff88;
+}
+
+.uss-passphrase-body {
+    padding: 24px;
+}
+
+.uss-passphrase-footer {
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.uss-btn-verify {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* ============================================================================
+   ATTEMPTS COUNTER
+   ============================================================================ */
+
+.uss-attempts-counter {
+    background: rgba(0, 212, 255, 0.1);
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.uss-attempts-counter.uss-attempts-critical {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: rgba(255, 68, 68, 0.5);
+    animation: uss-blink 1s infinite;
+}
+
+@keyframes uss-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.uss-attempts-label {
+    color: #b0b0b0;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.uss-attempts-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #00d4ff;
+}
+
+.uss-attempts-critical .uss-attempts-value {
+    color: #ff4444;
+}
+
+.uss-attempts-warning {
+    margin-top: 12px;
+    color: #ff6b6b;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ============================================================================
+   SESSION DETAILS
+   ============================================================================ */
+
+.uss-session-details {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.uss-detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 13px;
+}
+
+.uss-detail-label {
+    color: #888;
+}
+
+.uss-detail-value {
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+}
+
+.uss-status-active {
+    color: #00ff88 !important;
+}
+
+/* ============================================================================
+   SECURITY ALERT
+   ============================================================================ */
+
+.uss-security-alert {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a0000 0%, #2e0a0a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.uss-alert-container {
+    background: linear-gradient(135deg, #2e1a1a 0%, #3e1616 100%);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 68, 68, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.uss-alert-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.uss-alert-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.uss-alert-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 68, 68, 0.3);
+    border-radius: 4px;
+}
+
+.uss-alert-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 68, 68, 0.5);
+}
+
+.uss-alert-header {
+    text-align: center;
+    padding: 32px 24px;
+    border-bottom: 2px solid rgba(255, 68, 68, 0.2);
+}
+
+.uss-alert-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.uss-alert-header h2 {
+    margin: 0;
+    color: #ff6b6b;
+    font-size: 28px;
+}
+
+.uss-alert-body {
+    padding: 24px;
+}
+
+.uss-alert-message {
+    background: rgba(255, 68, 68, 0.1);
+    border-left: 4px solid #ff4444;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.uss-alert-message p {
+    margin: 0;
+    color: #ffb0b0;
+    font-size: 15px;
+}
+
+.uss-alert-details {
+    margin: 20px 0;
+}
+
+.uss-alert-detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.uss-alert-label {
+    color: #888;
+    font-size: 14px;
+}
+
+.uss-alert-value {
+    color: #e0e0e0;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+}
+
+.uss-alert-info-box {
+    background: rgba(0, 212, 255, 0.1);
+    border-left: 4px solid #00d4ff;
+    padding: 16px;
+    border-radius: 8px;
+    margin: 16px 0;
+}
+
+.uss-alert-info-box strong {
+    display: block;
+    color: #00d4ff;
+    margin-bottom: 8px;
+}
+
+.uss-alert-info-box ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.uss-alert-info-box li {
+    margin: 6px 0;
+    color: #b0e0ff;
+    font-size: 14px;
+}
+
+.uss-alert-warning-box {
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 4px solid #ff9800;
+    padding: 16px;
+    border-radius: 8px;
+    margin: 16px 0;
+}
+
+.uss-alert-warning-box strong {
+    display: block;
+    color: #ffb74d;
+    margin-bottom: 8px;
+}
+
+.uss-alert-warning-box ol {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.uss-alert-warning-box li {
+    margin: 6px 0;
+    color: #ffcc80;
+    font-size: 14px;
+}
+
+.uss-alert-backup-info {
+    display: flex;
+    gap: 16px;
+    background: rgba(0, 255, 136, 0.05);
+    border: 2px solid rgba(0, 255, 136, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.uss-backup-icon {
+    font-size: 48px;
+}
+
+.uss-backup-text strong {
+    display: block;
+    color: #00ff88;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.uss-backup-text p {
+    margin: 4px 0;
+    color: #b0b0b0;
+    font-size: 14px;
+}
+
+.uss-backup-password {
+    color: #00d4ff !important;
+    font-family: 'Courier New', monospace;
+}
+
+.uss-alert-footer {
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+/* ============================================================================
+   SPINNER
+   ============================================================================ */
+
+.uss-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    border-top-color: #0a0a0a;
+    border-radius: 50%;
+    animation: uss-spin 0.6s linear infinite;
+}
+
+@keyframes uss-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 600px) {
+    .uss-modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .uss-modal-header h2 {
+        font-size: 20px;
+    }
+
+    .uss-passphrase-header h2 {
+        font-size: 24px;
+    }
+
+    .uss-lock-icon,
+    .uss-alert-icon {
+        font-size: 48px;
+    }
+
+    .uss-attempts-value {
+        font-size: 28px;
+    }
+
+    .uss-modal-footer {
+        flex-direction: column;
+    }
+
+    .uss-btn-cancel,
+    .uss-btn-create {
+        width: 100%;
+    }
+}
+
+/* ============================================================================
+   USS CHAT VIEW - PREMIUM INTERFACE
+   ============================================================================ */
+
+.uss-chat-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0f3460 100%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    animation: uss-fade-in 0.3s ease;
+}
+
+/* Header */
+.uss-chat-header {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    padding: 20px 24px;
+    border-bottom: 2px solid #00d4ff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+}
+
+.uss-chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.uss-shield-icon {
+    font-size: 36px;
+    animation: uss-pulse 2s infinite;
+}
+
+.uss-chat-header-info h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #00d4ff;
+    font-weight: 600;
+}
+
+.uss-chat-participant {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    color: #b0e0ff;
+    font-size: 14px;
+}
+
+.uss-lock-badge {
+    font-size: 12px;
+}
+
+.uss-chat-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.uss-security-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 255, 136, 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.uss-security-dot {
+    width: 8px;
+    height: 8px;
+    background: #00ff88;
+    border-radius: 50%;
+    animation: uss-blink 1.5s infinite;
+}
+
+.uss-security-badge span {
+    color: #00ff88;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.uss-exit-btn {
+    background: rgba(255, 68, 68, 0.2);
+    border: 1px solid rgba(255, 68, 68, 0.5);
+    color: #ff6b6b;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.uss-exit-btn:hover {
+    background: rgba(255, 68, 68, 0.3);
+    transform: rotate(90deg);
+}
+
+/* Security Banner */
+.uss-security-banner {
+    background: rgba(0, 212, 255, 0.05);
+    padding: 12px 24px;
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+    overflow-x: auto;
+}
+
+.uss-banner-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #b0e0ff;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.uss-banner-icon {
+    font-size: 14px;
+}
+
+/* Messages Area */
+.uss-messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background: linear-gradient(180deg, rgba(0, 212, 255, 0.02) 0%, transparent 100%);
+}
+
+.uss-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+}
+
+.uss-empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: uss-pulse 2s infinite;
+}
+
+.uss-empty-state h3 {
+    color: #00d4ff;
+    margin: 0 0 8px 0;
+    font-size: 24px;
+}
+
+.uss-empty-state p {
+    color: #b0b0b0;
+    margin: 0 0 24px 0;
+}
+
+.uss-empty-features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.uss-feature-item {
+    color: #00ff88;
+    font-size: 14px;
+}
+
+/* Messages */
+.uss-message {
+    margin-bottom: 16px;
+    display: flex;
+    animation: uss-slide-up 0.3s ease;
+}
+
+.uss-message-sent {
+    justify-content: flex-end;
+}
+
+.uss-message-received {
+    justify-content: flex-start;
+}
+
+.uss-message-content {
+    max-width: 60%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    position: relative;
+}
+
+.uss-message-sent .uss-message-content {
+    background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+    color: #0a0a0a;
+    border-bottom-right-radius: 4px;
+}
+
+.uss-message-received .uss-message-content {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    color: #e0e0e0;
+    border-bottom-left-radius: 4px;
+}
+
+.uss-message-text {
+    word-wrap: break-word;
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+.uss-message-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.uss-verified-badge {
+    background: rgba(0, 255, 136, 0.2);
+    color: #00ff88;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* Input Area */
+.uss-input-area {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    padding: 20px 24px;
+    border-top: 2px solid #00d4ff;
+}
+
+.uss-input-container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.uss-message-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 15px;
+    resize: none;
+    max-height: 120px;
+    font-family: inherit;
+    transition: all 0.3s;
+}
+
+.uss-message-input:focus {
+    outline: none;
+    border-color: #00d4ff;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.uss-send-btn {
+    background: linear-gradient(135deg, #00d4ff, #00ff88);
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    color: #0a0a0a;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.uss-send-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+}
+
+.uss-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.uss-input-footer {
+    margin-top: 8px;
+    text-align: center;
+}
+
+.uss-encryption-indicator {
+    color: #00ff88;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* ============================================================================
+   MODAL DIALOGS (PREMIUM UX)
+   ============================================================================ */
+
+.uss-dialog-modal {
+    max-width: 400px !important;
+    text-align: center;
+}
+
+.uss-dialog-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    animation: uss-bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes uss-bounce {
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.uss-dialog-message {
+    font-size: 16px;
+    color: #e0e0e0;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-line;
+    /* Allow newlines in messages */
+}
+
+.uss-modal-header-success {
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+    border-bottom: 2px solid #96c93d;
+}
+
+.uss-modal-header-error {
+    background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
+    border-bottom: 2px solid #ef473a;
+}
+
+.uss-modal-header-warning {
+    background: linear-gradient(135deg, #f09819 0%, #edde5d 100%);
+    border-bottom: 2px solid #edde5d;
+}
+
+.uss-modal-header-critical {
+    background: linear-gradient(135deg, #8E0E00 0%, #1F1C18 100%);
+    border-bottom: 2px solid #ff0000;
+}
+
+.uss-modal-header-critical h2 {
+    color: #ff4444 !important;
+}
