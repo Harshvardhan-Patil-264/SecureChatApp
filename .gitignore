@@ -150,11 +150,11 @@ uploads/
 *.rar
 *.tar.gz
 
-# Database Files (SENSITIVE - Contains user data)
-*.sql
-*.sqlite
-*.sqlite3
-*.db
+# # Database Files (SENSITIVE - Contains user data)
+# *.sql
+# *.sqlite
+# *.sqlite3
+# *.db
 
 # Backup Files
 *.backup
