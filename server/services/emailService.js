@@ -301,8 +301,78 @@ async function sendTestEmail(recipientEmail) {
     }
 }
 
+/**
+ * Send OTP verification email
+ * @param {string} recipientEmail - Recipient email address
+ * @param {string} otp - 6-digit OTP code
+ * @param {'REGISTER'|'LOGIN'} type - Purpose of the OTP
+ * @returns {Promise<object>} Email send result
+ */
+async function sendOtpEmail(recipientEmail, otp, type) {
+    const isRegister = type === 'REGISTER';
+    const transporter = createTransporter();
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0d1117; margin: 0; padding: 20px; }
+  .wrap { max-width: 520px; margin: 0 auto; background: #161b22; border-radius: 14px; overflow: hidden; border: 1px solid #30363d; }
+  .hdr { background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%); padding: 32px 30px 28px; text-align: center; }
+  .hdr .shield { font-size: 44px; }
+  .hdr h1 { color: #fff; margin: 10px 0 4px; font-size: 22px; font-weight: 700; }
+  .hdr p  { color: rgba(255,255,255,0.8); margin: 0; font-size: 14px; }
+  .body  { padding: 32px 30px; }
+  .body p { color: #8b949e; font-size: 15px; line-height: 1.6; margin: 0 0 20px; }
+  .otp-box { background: #0d1117; border: 2px solid #388bfd; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0; }
+  .otp-box .label { color: #8b949e; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .otp-code { font-size: 42px; font-weight: 800; letter-spacing: 10px; color: #388bfd; font-family: 'Courier New', monospace; }
+  .expiry { color: #f0883e; font-size: 13px; margin-top: 10px; }
+  .warn { background: #161b22; border-left: 3px solid #f0883e; padding: 12px 16px; border-radius: 4px; color: #8b949e; font-size: 13px; }
+  .foot { text-align: center; padding: 20px 30px; border-top: 1px solid #21262d; color: #484f58; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="shield">🛡️</div>
+    <h1>SecureChat</h1>
+    <p>${isRegister ? 'Verify your email to create account' : 'One-time login verification'}</p>
+  </div>
+  <div class="body">
+    <p>Hi there! You requested a verification code to <strong style="color:#c9d1d9">${isRegister ? 'create your SecureChat account' : 'log in to your SecureChat account'}</strong>.</p>
+    <div class="otp-box">
+      <div class="label">Your OTP Code</div>
+      <div class="otp-code">${otp}</div>
+      <div class="expiry">⏱ Expires in 10 minutes</div>
+    </div>
+    <p>Enter this code in the app to continue. Do <strong style="color:#c9d1d9">not</strong> share this code with anyone.</p>
+    <div class="warn">⚠️ If you didn't request this code, please ignore this email. Your account is safe.</div>
+  </div>
+  <div class="foot">
+    <p>SecureChat — Military-grade encrypted messaging</p>
+    <p>This is an automated message. Do not reply.</p>
+  </div>
+</div>
+</body>
+</html>`.trim();
+
+    const mailOptions = {
+        from: `"SecureChat" <${process.env.EMAIL_USER}>`,
+        to: recipientEmail,
+        subject: `${otp} is your SecureChat ${isRegister ? 'registration' : 'login'} code`,
+        html
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`📧 OTP email (${type}) sent to ${recipientEmail}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+}
+
 module.exports = {
     sendSecurityEmail,
     sendTestEmail,
+    sendOtpEmail,
     getSecurityAlertTemplate
 };

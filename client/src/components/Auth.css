@@ -186,6 +186,7 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 /* Fix browser autofill yellow background */
 .input-field input:-webkit-autofill,
 .input-field input:-webkit-autofill:hover,
@@ -421,4 +422,66 @@
     font-size: 11px;
     padding: 5px 12px;
   }
+}
+
+/* ===========================
+   OTP VERIFICATION STYLES
+   =========================== */
+
+/* Info banner shown above OTP input */
+.otp-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(58, 134, 255, 0.08);
+  border: 1px solid rgba(58, 134, 255, 0.2);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.otp-info-banner svg {
+  flex-shrink: 0;
+  color: var(--accent-primary);
+}
+
+.otp-info-banner strong {
+  color: var(--text-primary);
+}
+
+/* Large centered OTP input */
+.otp-field input {
+  font-size: 28px !important;
+  font-weight: 700;
+  letter-spacing: 12px;
+  text-align: center;
+  padding: 18px 16px !important;
+  font-family: 'Courier New', 'Courier', monospace;
+  color: var(--accent-primary) !important;
+}
+
+.otp-field input::placeholder {
+  letter-spacing: 6px;
+  font-size: 20px;
+  color: var(--text-tertiary) !important;
+}
+
+/* Subtle hint below OTP input */
+.otp-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0;
+  margin-left: 4px;
+}
+
+/* Back button */
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-tertiary) !important;
+  font-size: 13px !important;
 }

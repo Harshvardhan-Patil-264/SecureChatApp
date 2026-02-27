@@ -1,8 +1,10 @@
 /**
  * routes/authRoutes.js
  * Provides:
- *  POST /api/auth/register
- *  POST /api/auth/login
+ *  POST /api/auth/send-register-otp  — validate inputs, send OTP for registration
+ *  POST /api/auth/register           — verify OTP then create account
+ *  POST /api/auth/send-login-otp     — validate credentials, send OTP for login
+ *  POST /api/auth/login              — verify OTP then complete login
  *  POST /api/auth/logout
  */
 
@@ -11,25 +13,104 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const activeUserManager = require('../services/activeUserManager');
 const messageService = require('../services/messageService');
+const { sendOtpEmail } = require('../services/emailService');
 
 const router = express.Router();
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
+// ─── Helper ──────────────────────────────────────────────────────────────────
+
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/**
+ * Save a fresh OTP to the DB (removes any previous unused OTPs for the same email+type)
+ */
+async function storeOtp(email, type) {
+  const otp = generateOtp();
+  // Delete previous unused OTPs for this email+type
+  await db.query(
+    'DELETE FROM otp_verifications WHERE email = ? AND type = ? AND used = 0',
+    [email, type]
+  );
+  // Insert new OTP expiring in 10 minutes
+  await db.query(
+    `INSERT INTO otp_verifications (email, otp, type, expires_at)
+     VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))`,
+    [email, otp, type]
+  );
+  return otp;
+}
+
+/**
+ * Verify OTP — returns true and marks used, or throws with an error message
+ */
+async function verifyOtp(email, otp, type) {
+  const [rows] = await db.query(
+    `SELECT id FROM otp_verifications
+     WHERE email = ? AND otp = ? AND type = ? AND used = 0 AND expires_at > NOW()`,
+    [email, otp, type]
+  );
+  if (!rows.length) {
+    throw new Error('Invalid or expired OTP');
+  }
+  await db.query('UPDATE otp_verifications SET used = 1 WHERE id = ?', [rows[0].id]);
+}
+
+// ─── POST /api/auth/send-register-otp ────────────────────────────────────────
+
+router.post('/send-register-otp', async (req, res) => {
   try {
-    const { username, email, password, signingPublicKey } = req.body;
+    const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password required' });
     }
 
-    // Check if username already exists
+    // Check uniqueness before sending OTP
     const [existingUser] = await db.query('SELECT username FROM users WHERE username = ?', [username]);
     if (existingUser.length) {
       return res.status(409).json({ error: 'Username already exists' });
     }
 
-    // Check if email already exists
+    const [existingEmail] = await db.query('SELECT email FROM users WHERE email = ?', [email]);
+    if (existingEmail.length) {
+      return res.status(409).json({ error: 'Email already exists' });
+    }
+
+    const otp = await storeOtp(email, 'REGISTER');
+    await sendOtpEmail(email, otp, 'REGISTER');
+
+    return res.json({ message: 'OTP sent to your email. Valid for 10 minutes.' });
+  } catch (err) {
+    console.error('send-register-otp error', err);
+    return res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+  }
+});
+
+// ─── POST /api/auth/register ──────────────────────────────────────────────────
+
+router.post('/register', async (req, res) => {
+  try {
+    const { username, email, password, otp, signingPublicKey } = req.body;
+
+    if (!username || !email || !password || !otp) {
+      return res.status(400).json({ error: 'Username, email, password, and OTP required' });
+    }
+
+    // Verify OTP first
+    try {
+      await verifyOtp(email, otp, 'REGISTER');
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+
+    // Double-check uniqueness (race condition guard)
+    const [existingUser] = await db.query('SELECT username FROM users WHERE username = ?', [username]);
+    if (existingUser.length) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+
     const [existingEmail] = await db.query('SELECT email FROM users WHERE email = ?', [email]);
     if (existingEmail.length) {
       return res.status(409).json({ error: 'Email already exists' });
@@ -42,24 +123,57 @@ router.post('/register', async (req, res) => {
       [username, email, passwordHash, signingPublicKey || null]
     );
 
-    return res.json({
-      username,
-      email,
-      message: 'Registration successful'
-    });
+    return res.json({ username, email, message: 'Registration successful' });
   } catch (err) {
     console.error('Register error', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
+// ─── POST /api/auth/send-login-otp ───────────────────────────────────────────
+
+router.post('/send-login-otp', async (req, res) => {
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    // Validate credentials first
+    const [rows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
+    if (!rows.length) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const user = rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({ error: 'No email associated with this account' });
+    }
+
+    const otp = await storeOtp(user.email, 'LOGIN');
+    await sendOtpEmail(user.email, otp, 'LOGIN');
+
+    return res.json({ message: 'OTP sent to your registered email. Valid for 10 minutes.' });
+  } catch (err) {
+    console.error('send-login-otp error', err);
+    return res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+  }
+});
+
+// ─── POST /api/auth/login ─────────────────────────────────────────────────────
+
+router.post('/login', async (req, res) => {
+  try {
+    const { username, password, otp } = req.body;
+
+    if (!username || !password || !otp) {
+      return res.status(400).json({ error: 'Username, password, and OTP required' });
     }
 
     const [rows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
@@ -71,6 +185,13 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verify OTP
+    try {
+      await verifyOtp(user.email, otp, 'LOGIN');
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
     }
 
     // Mark user as connected in memory
@@ -92,7 +213,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/logout
+// ─── POST /api/auth/logout ────────────────────────────────────────────────────
+
 router.post('/logout', (req, res) => {
   try {
     const { username } = req.body;
