@@ -12,6 +12,8 @@ import {
   importSigningPublicKey,
   signMessage,
   verifySignature,
+  encryptFile,
+  decryptFile,
 } from "../lib/crypto";
 import { API_URL } from "../config";
 import CreateUSSModal from './UltraSecureChat/CreateUSSModal';
@@ -20,8 +22,9 @@ import SecurityAlert from './UltraSecureChat/SecurityAlert';
 import USSChatView from './UltraSecureChat/USSChatView';
 import Profile from './Profile';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell } from 'lucide-react';
+import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText } from 'lucide-react';
 import Requests from './Requests';
+import MediaBubble from './MediaBubble';
 
 export default function Chat({ username, onLogout, theme, toggleTheme }) {
   const [users, setUsers] = useState([]);
@@ -47,11 +50,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   const [pendingCount, setPendingCount] = useState(0);
   const [discoverUsers, setDiscoverUsers] = useState([]); // search-discovered users
   const [discoverLoading, setDiscoverLoading] = useState(false);
+  const [mediaUploading, setMediaUploading] = useState(false);
   const discoverTimeout = useRef(null);
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Auto-scroll: instant via container scrollTop — never gets cancelled by re-renders
   const scrollToBottom = (force = false) => {
@@ -66,6 +71,15 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   useEffect(() => {
     scrollToBottom(true);
   }, [messages]);
+
+  // Also scroll when container height grows (e.g. image/video finishes loading)
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => scrollToBottom(true));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [messagesContainerRef.current]);
 
   useEffect(() => {
     if (!username) return;
@@ -378,6 +392,66 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
         setMessages(messagesList);
       }
     } catch (err) { }
+  };
+
+  // ─── Encrypted media upload ───────────────────────────────────────────────
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !sessionKey || !selectedUser) return;
+
+    const MAX = 50 * 1024 * 1024;
+    if (file.size > MAX) { alert('File too large (max 50 MB)'); return; }
+
+    const allowed = ['image/', 'video/', 'audio/'];
+    if (!allowed.some(t => file.type.startsWith(t))) {
+      alert('Only image, video, and audio files are supported'); return;
+    }
+
+    setMediaUploading(true);
+    try {
+      // 1. Encrypt file client-side
+      const { encryptedBlob } = await encryptFile(sessionKey, file);
+
+      // 2. Upload encrypted blob
+      const form = new FormData();
+      form.append('file', encryptedBlob, 'encrypted.enc');
+      const uploadRes = await fetch(`${API_URL}/api/media/upload`, { method: 'POST', body: form });
+      if (!uploadRes.ok) throw new Error('Upload failed');
+      const { url } = await uploadRes.json();
+
+      // 3. Pack metadata as the message text (JSON, then encrypt it)
+      const meta = JSON.stringify({
+        _media: true,
+        url,
+        mimeType: file.type,
+        name: file.name,
+        size: file.size,
+      });
+      const msgNo = Date.now();
+      const encryptedContent = await encryptMessage(sessionKey, msgNo, meta);
+
+      // 4. Send via existing messages API
+      const res = await fetch(`${API_URL}/api/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: username, receiver: selectedUser.username, message: encryptedContent, msgNo, signature: null }),
+      });
+      if (!res.ok) throw new Error('Send failed');
+      const data = await res.json();
+
+      // 5. Show locally as media bubble immediately
+      setMessages(prev => [...prev, {
+        ...data,
+        content: meta,        // raw JSON — MediaBubble will parse it
+        _media: true,
+        timestamp: data.timestamp || new Date().toISOString(),
+      }]);
+    } catch (err) {
+      console.error('Media send error', err);
+      alert('Failed to send media: ' + err.message);
+    }
+    setMediaUploading(false);
   };
 
   const sendMessage = async () => {
@@ -810,7 +884,15 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                     className={`message-wrapper ${msg.sender === username ? "sent" : "received"}`}
                   >
                     <div className="message-bubble">
-                      <span className="message-text">{msg.message || msg.content}</span>
+                      {/* Media message or regular text */}
+                      {(() => {
+                        const raw = msg.content || msg.message || '';
+                        let isMedia = false;
+                        try { const p = JSON.parse(raw); if (p._media) isMedia = true; } catch (_) { }
+                        return isMedia
+                          ? <MediaBubble message={{ ...msg, content: raw }} sessionKey={sessionKey} />
+                          : <span className="message-text">{raw}</span>;
+                      })()}
 
                       {msg.verified === true && (
                         <span className="verified-badge" title="Message signature verified">
@@ -842,8 +924,24 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             </div>
 
             <div className="message-input-container">
-              <button className="input-action-btn" title="Attach file">
-                <Paperclip size={20} />
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*,audio/*"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+              <button
+                className="input-action-btn"
+                title="Attach image / video / audio (encrypted)"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={mediaUploading || !sessionKey}
+                style={{ position: 'relative' }}
+              >
+                {mediaUploading
+                  ? <span style={{ width: 18, height: 18, border: '2px solid rgba(58,134,255,0.3)', borderTopColor: '#3A86FF', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.75s linear infinite' }} />
+                  : <Paperclip size={20} />}
               </button>
               <input
                 type="text"

@@ -1,0 +1,127 @@
+/* MediaBubble.css */
+
+.media-bubble-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 180px;
+    max-width: 320px;
+}
+
+/* ── Loading state ── */
+.media-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.media-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(58, 134, 255, 0.3);
+    border-top-color: #3A86FF;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Error state ── */
+.media-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #ef4444;
+    padding: 6px 0;
+}
+
+/* ── Media content ── */
+.media-img {
+    width: 100%;
+    max-width: 280px;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.media-img:hover {
+    opacity: 0.92;
+}
+
+.media-video {
+    width: 100%;
+    max-width: 280px;
+    border-radius: 10px;
+    display: block;
+    background: #000;
+}
+
+.media-audio {
+    width: 100%;
+    max-width: 280px;
+}
+
+/* ── Bottom meta row ── */
+.media-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    flex-wrap: wrap;
+}
+
+.media-name {
+    font-weight: 500;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-size {
+    opacity: 0.7;
+}
+
+.media-dl-btn {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    color: var(--accent-primary);
+    opacity: 0.8;
+    transition: opacity 0.15s;
+}
+
+.media-dl-btn:hover {
+    opacity: 1;
+}
+
+.media-file-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+.media-file-link:hover {
+    text-decoration: underline;
+}
+
+.media-parse-error {
+    font-size: 12px;
+    color: #ef4444;
+}

@@ -20,6 +20,7 @@ const signatureRoutes = require('./routes/signatureRoutes');
 const ussRoutes = require('./routes/ussRoutes');
 const ussMessageRoutes = require('./routes/ussMessageRoutes');
 const requestRoutes = require('./routes/requestRoutes');
+const mediaRoutes = require('./routes/mediaRoutes');
 
 // Socket setup
 const setupChatSocket = require('./sockets/chatSocket');
@@ -44,6 +45,7 @@ app.use('/api/signatures', signatureRoutes);
 app.use('/api/uss', ussRoutes);
 app.use('/api/uss/messages', ussMessageRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/media', mediaRoutes);
 app.use('/api', healthRoutes);
 
 // static serve (optional) — exposes stored image files under /api/images/static/<filename>

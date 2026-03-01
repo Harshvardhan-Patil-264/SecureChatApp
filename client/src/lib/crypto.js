@@ -586,3 +586,45 @@ export function generateDummyMessages(userA, userB, count = 20) {
 
     return dummyMessages;
 }
+
+// ---------------------------------------------------------------------------
+// 6️⃣ File encryption / decryption (images, video, audio)
+//    Uses AES-GCM with the chat session key. IV (12 bytes) prepended to blob.
+// ---------------------------------------------------------------------------
+
+/**
+ * Encrypt a File/Blob with the session key.
+ * @param {Uint8Array} sessionKeyRaw
+ * @param {File|Blob}  file
+ * @returns {Promise<{ encryptedBlob: Blob }>}
+ */
+export async function encryptFile(sessionKeyRaw, file) {
+    const aesKey = await crypto.subtle.importKey(
+        'raw', sessionKeyRaw, { name: 'AES-GCM', length: 256 }, false, ['encrypt']
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const plainBuffer = await file.arrayBuffer();
+    const cipherBuffer = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, plainBuffer);
+    const combined = new Uint8Array(12 + cipherBuffer.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(cipherBuffer), 12);
+    return { encryptedBlob: new Blob([combined], { type: 'application/octet-stream' }) };
+}
+
+/**
+ * Decrypt an encrypted media blob. IV is the first 12 bytes.
+ * @param {Uint8Array}   sessionKeyRaw
+ * @param {ArrayBuffer}  encryptedBuffer
+ * @param {string}       mimeType - original MIME to restore the Blob
+ * @returns {Promise<Blob>}
+ */
+export async function decryptFile(sessionKeyRaw, encryptedBuffer, mimeType) {
+    const aesKey = await crypto.subtle.importKey(
+        'raw', sessionKeyRaw, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+    );
+    const bytes = new Uint8Array(encryptedBuffer);
+    const iv = bytes.slice(0, 12);
+    const cipher = bytes.slice(12);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aesKey, cipher);
+    return new Blob([plain], { type: mimeType });
+}
