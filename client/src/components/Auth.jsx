@@ -18,6 +18,7 @@ export default function Auth({ onLogin, theme, toggleTheme }) {
 
   // Form fields
   const [username, setUsername] = useState('')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -33,7 +34,7 @@ export default function Auth({ onLogin, theme, toggleTheme }) {
     e.preventDefault()
     setLoading(true)
     try {
-      await api.post('/auth/send-register-otp', { username, email, password })
+      await api.post('/auth/send-register-otp', { username, email, password, name })
       toast.success('OTP sent! Check your email inbox.')
       setOtpStep(true)
     } catch (err) {
@@ -52,6 +53,7 @@ export default function Auth({ onLogin, theme, toggleTheme }) {
 
       await api.post('/auth/register', {
         username,
+        name,
         email,
         password,
         otp,
@@ -125,6 +127,7 @@ export default function Auth({ onLogin, theme, toggleTheme }) {
 
   const resetAll = () => {
     setUsername('')
+    setName('')
     setEmail('')
     setPassword('')
     setOtp('')
@@ -297,29 +300,50 @@ export default function Auth({ onLogin, theme, toggleTheme }) {
                 </div>
               </div>
 
-              {/* Email – only for register */}
+              {/* Name + Email - only for register */}
               <AnimatePresence>
                 {isRegister && (
-                  <motion.div
-                    className="input-field-group"
-                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                    animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
-                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <label className="input-label" htmlFor="secure-email">Email</label>
-                    <div className="input-field">
-                      <input
-                        id="secure-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={loading}
-                      />
-                    </div>
-                  </motion.div>
+                  <>
+                    <motion.div
+                      className="input-field-group"
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <label className="input-label" htmlFor="secure-name">Display Name</label>
+                      <div className="input-field">
+                        <input
+                          id="secure-name"
+                          type="text"
+                          placeholder="Your full name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                    </motion.div>
+                    <motion.div
+                      className="input-field-group"
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <label className="input-label" htmlFor="secure-email">Email</label>
+                      <div className="input-field">
+                        <input
+                          id="secure-email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
+                      </div>
+                    </motion.div>
+                  </>
                 )}
               </AnimatePresence>
 

@@ -21,35 +21,37 @@ const messageService = require('../services/messageService');
  */
 function setup(server) {
   const io = new Server(server, {
-    cors: {
-      origin: true,
-      credentials: true
-    }
+    cors: { origin: true, credentials: true },
+    // Prefer native WebSocket immediately — skip the HTTP polling upgrade
+    transports: ['websocket'],
+    // Tighter heartbeat: detect dead connections in ~15s instead of default ~25s
+    pingInterval: 10000,
+    pingTimeout: 5000,
+    // Allow larger encrypted payloads
+    maxHttpBufferSize: 2e6 // 2MB
   });
 
   io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
-
     // register event: client sends username to associate socket
     socket.on('register', async (payload) => {
       try {
         const username = payload && payload.username;
         if (!username) return;
 
-        // store username on socket
         socket.data.username = username;
+        // Join a personal room — enables targeted emits without iterating socket IDs
+        socket.join(`user:${username}`);
         activeUserManager.userConnected(username, socket.id);
 
-        // deliver any undelivered messages (optional)
+        // Flush undelivered messages immediately
         const undelivered = await messageService.getUndeliveredMessages(username);
         if (undelivered && undelivered.length) {
-          for (const m of undelivered) {
-            socket.emit('message', m);
-          }
+          for (const m of undelivered) socket.emit('message', m);
           await messageService.markAsDelivered(undelivered);
         }
 
-        // broadcast updated active users list
+        // Only notify parties who care: the connecting user's contacts
+        // (full broadcast causes all clients to re-render — avoid it)
         io.emit('activeUsers', activeUserManager.getActiveUsers());
       } catch (err) {
         console.error('register handler error', err);

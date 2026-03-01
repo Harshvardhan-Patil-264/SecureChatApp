@@ -1,0 +1,134 @@
+.requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    overflow-y: auto;
+}
+
+.requests-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    padding: 40px 20px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.requests-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.request-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    transition: background 0.2s;
+}
+
+.request-card:hover {
+    background: var(--bg-surface-hover);
+}
+
+.request-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.request-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.request-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.request-username {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.request-time {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.request-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.req-accept-btn,
+.req-decline-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.req-accept-btn {
+    background: rgba(0, 230, 118, 0.15);
+    color: #00E676;
+}
+
+.req-accept-btn:hover {
+    background: #00E676;
+    color: #000;
+    transform: scale(1.05);
+}
+
+.req-decline-btn {
+    background: rgba(255, 59, 59, 0.12);
+    color: #FF3B3B;
+}
+
+.req-decline-btn:hover {
+    background: #FF3B3B;
+    color: #fff;
+    transform: scale(1.05);
+}

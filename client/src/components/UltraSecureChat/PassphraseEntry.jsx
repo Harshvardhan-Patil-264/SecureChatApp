@@ -8,7 +8,7 @@ import ModalDialog from './ModalDialog';
 import { API_URL } from '../../config';
 import './UltraSecureChat.css';
 
-const PassphraseEntry = ({ session, currentUser, onAccessGranted, onAccessDenied }) => {
+const PassphraseEntry = ({ session, currentUser, onAccessGranted, onAccessDenied, onCancel }) => {
     const [passphrase, setPassphrase] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
     const [showPassphrase, setShowPassphrase] = useState(false);
@@ -132,9 +132,10 @@ const PassphraseEntry = ({ session, currentUser, onAccessGranted, onAccessDenied
     };
 
     return (
-        <div className="uss-passphrase-entry">
-            <div className="uss-passphrase-container">
+        <div className="uss-passphrase-entry" onClick={onCancel}>
+            <div className="uss-passphrase-container" onClick={(e) => e.stopPropagation()}>
                 <div className="uss-passphrase-header">
+                    <button className="uss-close-btn" style={{ position: 'absolute', top: '24px', right: '24px' }} onClick={onCancel}>✕</button>
                     <div className="uss-lock-icon">🔐</div>
                     <h2>Ultra Secure Chat</h2>
                     <p className="uss-session-info">

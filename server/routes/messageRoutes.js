@@ -14,7 +14,7 @@ router.get('/:userA/:userB', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT id, sender, receiver, content AS message, msg_no AS msgNo, signature, verified, timestamp
+      `SELECT id, sender, receiver, content AS message, msg_no AS msgNo, signature, verified, timestamp, delivered, seen
        FROM messages
        WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
        ORDER BY timestamp ASC`,
@@ -24,6 +24,27 @@ router.get('/:userA/:userB', async (req, res) => {
     res.json({ messages: rows });
   } catch (err) {
     console.error('Failed to load conversation', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Mark messages as seen (called when receiver opens the chat)
+router.put('/seen', async (req, res) => {
+  const { sender, receiver } = req.body;
+  if (!sender || !receiver) return res.status(400).json({ error: 'sender and receiver required' });
+  try {
+    await db.query(
+      `UPDATE messages SET seen = 1 WHERE sender = ? AND receiver = ? AND seen = 0`,
+      [sender, receiver]
+    );
+    // Emit socket event so sender's UI updates
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('messages_seen', { sender, receiver });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to mark seen', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

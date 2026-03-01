@@ -34,10 +34,10 @@
   /* Misc */
   --online-dot: #00E676;
   --unread-badge: #3A86FF;
-  --msg-sent-bg: linear-gradient(135deg, #3A86FF, #1C2541);
+  --msg-sent-bg: #3A86FF;
   --msg-sent-text: #ffffff;
-  --msg-recv-bg: rgba(28, 37, 65, 0.8);
-  --msg-recv-text: #EAEAEA;
+  --msg-recv-bg: #1E293B;
+  --msg-recv-text: #E2E8F0;
   --encryption-banner-bg: rgba(58, 134, 255, 0.08);
   --encryption-banner-color: #3A86FF;
   --theme-transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
@@ -84,10 +84,10 @@
   /* Misc */
   --online-dot: #10B981;
   --unread-badge: #2563EB;
-  --msg-sent-bg: linear-gradient(135deg, #2563EB, #1d4ed8);
+  --msg-sent-bg: #2563EB;
   --msg-sent-text: #ffffff;
-  --msg-recv-bg: #F1F5F9;
-  --msg-recv-text: #111827;
+  --msg-recv-bg: #E2E8F0;
+  --msg-recv-text: #1E293B;
   --encryption-banner-bg: rgba(37, 99, 235, 0.06);
   --encryption-banner-color: #2563EB;
 

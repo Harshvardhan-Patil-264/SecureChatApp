@@ -58,24 +58,24 @@ async function markAsDelivered(messages) {
  * messageObj contains any fields your client expects (sender, receiver, content, cipher, image, etc.)
  */
 async function sendOrStoreMessage(io, messageObj) {
+  const receiver = messageObj.receiver;
+  const ts = new Date();
+  messageObj.timestamp = ts;
+
   try {
-    const receiver = messageObj.receiver;
     if (receiver && activeUserManager.isUserActive(receiver)) {
-      const sockets = activeUserManager.getSockets(receiver);
-      for (const sid of sockets) {
-        io.to(sid).emit('message', messageObj);
-      }
+      // Emit FIRST — before the DB write so the receiver sees it instantly
+      io.to(`user:${receiver}`).emit('message', { ...messageObj, delivered: true });
       messageObj.delivered = true;
-      console.log(`📨 Delivered message to ${receiver}`);
     } else {
       messageObj.delivered = false;
-      console.log(`💾 Receiver offline; stored message for ${receiver}`);
     }
   } catch (err) {
     messageObj.delivered = false;
-    console.warn('⚠️ Error trying to deliver message; will store. ', err && err.message);
+    console.warn('⚠️ Error delivering message:', err && err.message);
   }
 
+  // DB write happens right after — does not block delivery
   const saved = await saveMessageToDb(messageObj);
   return saved;
 }

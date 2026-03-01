@@ -1,5 +1,5 @@
 /* client/src/components/UltraSecureChat/UltraSecureChat.css */
-/* Styles for Ultra Secure Chat components */
+/* Styles for Ultra Secure Chat components - Redesigned to support dynamic light/dark modes */
 
 /* ============================================================================
    MODAL OVERLAY & CONTAINER
@@ -11,8 +11,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -31,25 +31,26 @@
 }
 
 .uss-modal {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-radius: 16px;
+    background: var(--bg-surface-solid);
+    border-radius: 20px;
     width: 90%;
-    max-width: 550px;
+    max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    animation: uss-slide-up 0.3s ease;
-    color: #e0e0e0;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    animation: uss-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    color: var(--text-primary);
 }
 
 @keyframes uss-slide-up {
     from {
-        transform: translateY(50px);
+        transform: translateY(30px) scale(0.98);
         opacity: 0;
     }
 
     to {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
     }
 }
@@ -59,99 +60,125 @@
    ============================================================================ */
 
 .uss-modal-header {
-    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
-    padding: 24px;
-    border-radius: 16px 16px 0 0;
-    border-bottom: 2px solid #00d4ff;
+    background: var(--bg-surface);
+    padding: 24px 32px;
+    border-radius: 20px 20px 0 0;
+    border-bottom: 1px solid var(--border-glass);
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .uss-modal-header h2 {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    color: #00d4ff;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .uss-close-btn {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: #fff;
-    font-size: 24px;
+    top: 24px;
+    right: 24px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    font-size: 20px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
     cursor: pointer;
-    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 }
 
 .uss-close-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
     transform: rotate(90deg);
 }
-
-
 
 /* ============================================================================
    FORM ELEMENTS
    ============================================================================ */
 
 .uss-modal-body {
-    padding: 24px;
+    padding: 32px;
 }
 
 .uss-form-group {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .uss-form-group label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 8px;
-    color: #00d4ff;
-    font-weight: 500;
+    color: var(--text-primary);
+    font-weight: 600;
     font-size: 14px;
 }
 
 .uss-input,
 .uss-select {
     width: 100%;
-    padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(0, 212, 255, 0.3);
-    border-radius: 8px;
-    color: #fff;
+    padding: 14px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
     font-size: 15px;
-    transition: all 0.3s;
+    font-family: var(--font-body);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .uss-input:focus,
 .uss-select:focus {
     outline: none;
-    border-color: #00d4ff;
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-glow), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    background: var(--bg-surface-solid);
+}
+
+.uss-input::placeholder {
+    color: var(--text-tertiary);
 }
 
 .uss-input-large {
     font-size: 18px;
-    padding: 16px;
+    padding: 18px 20px;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 600;
+    letter-spacing: 1px;
 }
 
 .uss-select {
     cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px;
 }
 
 .uss-select option {
-    background: #16213e;
-    color: #fff;
+    background: var(--bg-surface-solid);
+    color: var(--text-primary);
 }
 
-/* Password Input with Toggle */
+/* Password Input */
 .uss-password-input {
     position: relative;
+    display: flex;
+    align-items: center;
 }
 
 .uss-password-input input {
@@ -161,19 +188,21 @@
 .uss-toggle-visibility {
     position: absolute;
     right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
     background: transparent;
     border: none;
-    font-size: 20px;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 8px;
-    border-radius: 4px;
-    transition: background 0.2s;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
 .uss-toggle-visibility:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
 }
 
 /* ============================================================================
@@ -181,51 +210,54 @@
    ============================================================================ */
 
 .uss-strength-meter {
-    margin-top: 12px;
+    margin-top: 14px;
 }
 
 .uss-strength-bar-container {
     height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    background: var(--border-color);
+    border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .uss-strength-bar {
     height: 100%;
-    transition: all 0.3s ease;
-    border-radius: 3px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 4px;
 }
 
 .uss-strength-bar.uss-strength-weak {
-    background: linear-gradient(90deg, #ff4444, #ff6b6b);
+    background: #ef4444;
+    /* explicitly red for danger */
 }
 
 .uss-strength-bar.uss-strength-medium {
-    background: linear-gradient(90deg, #ffa500, #ffcc00);
+    background: #f59e0b;
+    /* explicitly amber for warning */
 }
 
 .uss-strength-bar.uss-strength-strong {
-    background: linear-gradient(90deg, #00ff88, #00d4ff);
+    background: var(--accent-success);
+    /* use theme success */
 }
 
 .uss-strength-label {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.5px;
 }
 
 .uss-strength-label.uss-strength-weak {
-    color: #ff6b6b;
+    color: #ef4444;
 }
 
 .uss-strength-label.uss-strength-medium {
-    color: #ffcc00;
+    color: #f59e0b;
 }
 
 .uss-strength-label.uss-strength-strong {
-    color: #00ff88;
+    color: var(--accent-success);
 }
 
 /* ============================================================================
@@ -233,49 +265,63 @@
    ============================================================================ */
 
 .uss-requirements {
-    margin-top: 12px;
+    margin-top: 16px;
     font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
 }
 
 .uss-req-met,
 .uss-req-unmet {
-    padding: 6px 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     transition: all 0.2s;
+    font-weight: 500;
 }
 
 .uss-req-met {
-    color: #00ff88;
+    color: var(--accent-success);
 }
 
 .uss-req-unmet {
-    color: #888;
+    color: var(--text-tertiary);
 }
 
 /* Match Indicators */
 .uss-match-success {
-    color: #00ff88;
+    color: var(--accent-success);
     font-size: 13px;
     margin-top: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .uss-match-error {
-    color: #ff6b6b;
+    color: #ef4444;
     font-size: 13px;
     margin-top: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
-
-
 /* ============================================================================
-   MODAL FOOTER
+   MODAL FOOTER & BUTTONS
    ============================================================================ */
 
 .uss-modal-footer {
-    padding: 20px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 24px 32px;
+    border-top: 1px solid var(--border-glass);
     display: flex;
     gap: 12px;
     justify-content: flex-end;
+    background: var(--bg-surface);
+    border-radius: 0 0 20px 20px;
 }
 
 .uss-btn-cancel,
@@ -284,54 +330,63 @@
 .uss-btn-primary,
 .uss-btn-secondary {
     padding: 12px 24px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .uss-btn-cancel {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
 }
 
 .uss-btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
 }
 
 .uss-btn-create,
 .uss-btn-verify,
 .uss-btn-primary {
-    background: linear-gradient(135deg, #00d4ff, #00ff88);
-    color: #0a0a0a;
-    font-weight: 600;
+    background: var(--accent-gradient);
+    color: #fff;
+    /* White text looks best on gradients */
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .uss-btn-create:hover,
 .uss-btn-verify:hover,
 .uss-btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 6px 16px var(--accent-glow);
 }
 
 .uss-btn-create:disabled,
-.uss-btn-verify:disabled {
-    opacity: 0.5;
+.uss-btn-verify:disabled,
+.uss-btn-primary:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+    filter: grayscale(0.5);
+    box-shadow: none;
 }
 
 .uss-btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: #00d4ff;
+    background: var(--bg-surface-hover);
+    color: var(--accent-primary);
     text-decoration: none;
-    display: inline-block;
 }
 
 .uss-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--border-glass);
 }
 
 /* ============================================================================
@@ -339,8 +394,14 @@
    ============================================================================ */
 
 .uss-passphrase-entry {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -348,24 +409,28 @@
 }
 
 .uss-passphrase-container {
-    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
-    border-radius: 16px;
+    background: var(--bg-surface-solid);
+    border-radius: 20px;
     width: 100%;
-    max-width: 500px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(0, 212, 255, 0.2);
+    max-width: 480px;
+    box-shadow: var(--shadow-glass);
+    border: 1px solid var(--border-color);
+    position: relative;
 }
 
 .uss-passphrase-header {
     text-align: center;
-    padding: 32px 24px;
-    border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid var(--border-glass);
+    position: relative;
 }
 
 .uss-lock-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
-    animation: uss-pulse 2s infinite;
+    font-size: 40px;
+    margin-bottom: 12px;
+    animation: uss-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    display: inline-block;
+    filter: drop-shadow(0 0 12px var(--accent-glow));
 }
 
 @keyframes uss-pulse {
@@ -376,41 +441,36 @@
     }
 
     50% {
-        transform: scale(1.1);
+        transform: scale(1.08);
     }
 }
 
 .uss-passphrase-header h2 {
-    margin: 0 0 8px 0;
-    color: #00d4ff;
-    font-size: 28px;
+    margin: 0 0 4px 0;
+    color: var(--text-primary);
+    font-size: 22px;
+    font-weight: 700;
 }
 
 .uss-session-info {
-    color: #b0b0b0;
-    font-size: 14px;
+    color: var(--text-secondary);
+    font-size: 13px;
     margin: 0;
 }
 
 .uss-session-info strong {
-    color: #00ff88;
+    color: var(--accent-primary);
+    font-weight: 600;
 }
 
 .uss-passphrase-body {
-    padding: 24px;
+    padding: 24px 32px;
 }
 
 .uss-passphrase-footer {
-    padding: 20px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.uss-btn-verify {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    padding: 16px 32px;
+    border-top: 1px solid var(--border-glass);
+    background: var(--bg-surface);
 }
 
 /* ============================================================================
@@ -418,18 +478,18 @@
    ============================================================================ */
 
 .uss-attempts-counter {
-    background: rgba(0, 212, 255, 0.1);
-    border: 2px solid rgba(0, 212, 255, 0.3);
+    background: var(--bg-surface-hover);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 20px;
+    padding: 16px;
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .uss-attempts-counter.uss-attempts-critical {
-    background: rgba(255, 68, 68, 0.1);
-    border-color: rgba(255, 68, 68, 0.5);
-    animation: uss-blink 1s infinite;
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.4);
+    animation: uss-blink 2s infinite;
 }
 
 @keyframes uss-blink {
@@ -440,33 +500,41 @@
     }
 
     50% {
-        opacity: 0.7;
+        opacity: 0.8;
     }
 }
 
 .uss-attempts-label {
-    color: #b0b0b0;
-    font-size: 13px;
+    color: var(--text-secondary);
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 8px;
+    font-weight: 600;
 }
 
 .uss-attempts-value {
-    font-size: 36px;
-    font-weight: 700;
-    color: #00d4ff;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
 
-.uss-attempts-critical .uss-attempts-value {
-    color: #ff4444;
+.uss-attempts-critical .uss-attempts-value,
+.uss-attempts-critical .uss-attempts-label {
+    color: #ef4444;
 }
 
 .uss-attempts-warning {
-    margin-top: 12px;
-    color: #ff6b6b;
-    font-size: 13px;
-    font-weight: 500;
+    margin-top: 8px;
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: inline-block;
 }
 
 /* ============================================================================
@@ -474,29 +542,49 @@
    ============================================================================ */
 
 .uss-session-details {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 32px 24px;
+    border-radius: 0 0 20px 20px;
+    background: var(--bg-surface-solid);
 }
 
 .uss-detail-item {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
-    font-size: 13px;
+    padding: 6px 0;
+    font-size: 12px;
+    border-bottom: 1px dashed var(--border-glass);
+}
+
+.uss-detail-item:last-child {
+    border-bottom: none;
 }
 
 .uss-detail-label {
-    color: #888;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .uss-detail-value {
-    color: #e0e0e0;
-    font-family: 'Courier New', monospace;
+    color: var(--text-primary);
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 600;
 }
 
 .uss-status-active {
-    color: #00ff88 !important;
+    color: var(--accent-success) !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.uss-status-active::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--accent-success);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-success);
 }
 
 /* ============================================================================
@@ -504,8 +592,14 @@
    ============================================================================ */
 
 .uss-security-alert {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #1a0000 0%, #2e0a0a 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -513,149 +607,107 @@
 }
 
 .uss-alert-container {
-    background: linear-gradient(135deg, #2e1a1a 0%, #3e1616 100%);
-    border-radius: 16px;
+    background: var(--bg-surface-solid);
+    border-radius: 20px;
     width: 100%;
-    max-width: 600px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
-    border: 2px solid rgba(255, 68, 68, 0.3);
-    max-height: 90vh;
+    max-width: 500px;
+    max-height: 80vh;
     overflow-y: auto;
-}
-
-.uss-alert-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.uss-alert-container::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
-.uss-alert-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 68, 68, 0.3);
-    border-radius: 4px;
-}
-
-.uss-alert-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 68, 68, 0.5);
+    box-shadow: var(--shadow-glass);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    position: relative;
 }
 
 .uss-alert-header {
     text-align: center;
-    padding: 32px 24px;
-    border-bottom: 2px solid rgba(255, 68, 68, 0.2);
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 20px 20px 0 0;
 }
 
 .uss-alert-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
+    font-size: 40px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.4));
 }
 
 .uss-alert-header h2 {
     margin: 0;
-    color: #ff6b6b;
-    font-size: 28px;
+    color: #ef4444;
+    font-size: 22px;
+    font-weight: 700;
 }
 
 .uss-alert-body {
-    padding: 24px;
+    padding: 20px 24px;
 }
 
 .uss-alert-message {
-    background: rgba(255, 68, 68, 0.1);
-    border-left: 4px solid #ff4444;
-    padding: 16px;
-    border-radius: 8px;
-    margin-bottom: 20px;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid #ef4444;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 16px;
 }
 
 .uss-alert-message p {
     margin: 0;
-    color: #ffb0b0;
-    font-size: 15px;
-}
-
-.uss-alert-details {
-    margin: 20px 0;
-}
-
-.uss-alert-detail-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.uss-alert-label {
-    color: #888;
+    color: var(--text-primary);
     font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
 }
 
-.uss-alert-value {
-    color: #e0e0e0;
-    font-size: 14px;
-    font-family: 'Courier New', monospace;
+.uss-alert-info-box,
+.uss-alert-warning-box {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin: 10px 0;
 }
 
 .uss-alert-info-box {
-    background: rgba(0, 212, 255, 0.1);
-    border-left: 4px solid #00d4ff;
-    padding: 16px;
-    border-radius: 8px;
-    margin: 16px 0;
-}
-
-.uss-alert-info-box strong {
-    display: block;
-    color: #00d4ff;
-    margin-bottom: 8px;
-}
-
-.uss-alert-info-box ul {
-    margin: 8px 0 0 0;
-    padding-left: 20px;
-}
-
-.uss-alert-info-box li {
-    margin: 6px 0;
-    color: #b0e0ff;
-    font-size: 14px;
+    background: var(--bg-surface-hover);
+    border-left: 4px solid var(--accent-primary);
 }
 
 .uss-alert-warning-box {
-    background: rgba(255, 152, 0, 0.1);
-    border-left: 4px solid #ff9800;
-    padding: 16px;
-    border-radius: 8px;
-    margin: 16px 0;
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 4px solid #f59e0b;
 }
 
-.uss-alert-warning-box strong {
+.uss-alert-info-box strong {
+    color: var(--accent-primary);
     display: block;
-    color: #ffb74d;
-    margin-bottom: 8px;
-}
-
-.uss-alert-warning-box ol {
-    margin: 8px 0 0 0;
-    padding-left: 20px;
-}
-
-.uss-alert-warning-box li {
-    margin: 6px 0;
-    color: #ffcc80;
+    margin-bottom: 6px;
     font-size: 14px;
 }
 
+.uss-alert-warning-box strong {
+    color: #f59e0b;
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.uss-alert-info-box li,
+.uss-alert-warning-box li {
+    margin: 4px 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* Backup Info */
 .uss-alert-backup-info {
     display: flex;
-    gap: 16px;
-    background: rgba(0, 255, 136, 0.05);
-    border: 2px solid rgba(0, 255, 136, 0.2);
-    border-radius: 12px;
-    padding: 20px;
-    margin: 20px 0;
+    gap: 20px;
+    background: rgba(16, 185, 129, 0.08);
+    /* accent-success tint */
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 24px 0;
+    align-items: center;
 }
 
 .uss-backup-icon {
@@ -664,28 +716,34 @@
 
 .uss-backup-text strong {
     display: block;
-    color: #00ff88;
+    color: var(--accent-success);
     margin-bottom: 8px;
     font-size: 16px;
 }
 
 .uss-backup-text p {
     margin: 4px 0;
-    color: #b0b0b0;
+    color: var(--text-secondary);
     font-size: 14px;
+    line-height: 1.5;
 }
 
 .uss-backup-password {
-    color: #00d4ff !important;
-    font-family: 'Courier New', monospace;
+    color: var(--text-primary) !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    background: var(--bg-input);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
 }
 
 .uss-alert-footer {
-    padding: 20px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 24px 32px;
+    border-top: 1px solid var(--border-glass);
     display: flex;
-    gap: 12px;
     justify-content: center;
+    background: var(--bg-surface);
 }
 
 /* ============================================================================
@@ -694,10 +752,10 @@
 
 .uss-spinner {
     display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(0, 0, 0, 0.3);
-    border-top-color: #0a0a0a;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
     border-radius: 50%;
     animation: uss-spin 0.6s linear infinite;
 }
@@ -709,44 +767,7 @@
 }
 
 /* ============================================================================
-   RESPONSIVE
-   ============================================================================ */
-
-@media (max-width: 600px) {
-    .uss-modal {
-        width: 95%;
-        max-height: 95vh;
-    }
-
-    .uss-modal-header h2 {
-        font-size: 20px;
-    }
-
-    .uss-passphrase-header h2 {
-        font-size: 24px;
-    }
-
-    .uss-lock-icon,
-    .uss-alert-icon {
-        font-size: 48px;
-    }
-
-    .uss-attempts-value {
-        font-size: 28px;
-    }
-
-    .uss-modal-footer {
-        flex-direction: column;
-    }
-
-    .uss-btn-cancel,
-    .uss-btn-create {
-        width: 100%;
-    }
-}
-
-/* ============================================================================
-   USS CHAT VIEW - PREMIUM INTERFACE
+   USS CHAT VIEW - PREMIUM / ANONYMOUS INTERFACE
    ============================================================================ */
 
 .uss-chat-view {
@@ -755,7 +776,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0f3460 100%);
+    background: var(--bg-base);
     z-index: 2000;
     display: flex;
     flex-direction: column;
@@ -764,13 +785,14 @@
 
 /* Header */
 .uss-chat-header {
-    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
-    padding: 20px 24px;
-    border-bottom: 2px solid #00d4ff;
+    background: var(--bg-surface-solid);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    z-index: 10;
 }
 
 .uss-chat-header-left {
@@ -780,24 +802,32 @@
 }
 
 .uss-shield-icon {
-    font-size: 36px;
-    animation: uss-pulse 2s infinite;
+    font-size: 32px;
+    filter: grayscale(100%) brightness(150%);
+    opacity: 0.8;
+}
+
+[data-theme="light"] .uss-shield-icon {
+    filter: grayscale(100%) brightness(50%);
 }
 
 .uss-chat-header-info h2 {
     margin: 0;
-    font-size: 20px;
-    color: #00d4ff;
-    font-weight: 600;
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .uss-chat-participant {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-top: 4px;
-    color: #b0e0ff;
-    font-size: 14px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .uss-lock-badge {
@@ -807,307 +837,346 @@
 .uss-chat-header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
 }
 
 .uss-security-badge {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0, 255, 136, 0.1);
-    padding: 8px 16px;
+    background: var(--bg-surface-hover);
+    padding: 6px 14px;
     border-radius: 20px;
-    border: 1px solid rgba(0, 255, 136, 0.3);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-primary);
+    border: 1px solid var(--border-color);
 }
 
 .uss-security-dot {
-    width: 8px;
-    height: 8px;
-    background: #00ff88;
+    width: 6px;
+    height: 6px;
+    background: var(--accent-primary);
     border-radius: 50%;
-    animation: uss-blink 1.5s infinite;
-}
-
-.uss-security-badge span {
-    color: #00ff88;
-    font-size: 13px;
-    font-weight: 500;
+    box-shadow: 0 0 8px var(--accent-glow);
+    animation: uss-blink 2s infinite;
 }
 
 .uss-exit-btn {
-    background: rgba(255, 68, 68, 0.2);
-    border: 1px solid rgba(255, 68, 68, 0.5);
-    color: #ff6b6b;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    font-size: 20px;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .uss-exit-btn:hover {
-    background: rgba(255, 68, 68, 0.3);
-    transform: rotate(90deg);
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
 }
 
-/* Security Banner */
+/* Security Banner (The 4 traits) */
 .uss-security-banner {
-    background: rgba(0, 212, 255, 0.05);
-    padding: 12px 24px;
     display: flex;
-    gap: 24px;
-    border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-    overflow-x: auto;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--bg-surface);
+    border-bottom: 1px dashed var(--border-glass);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    color: var(--text-tertiary);
 }
 
 .uss-banner-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: #b0e0ff;
-    font-size: 12px;
-    white-space: nowrap;
+    gap: 8px;
 }
 
 .uss-banner-icon {
     font-size: 14px;
+    opacity: 0.6;
 }
 
 /* Messages Area */
 .uss-messages-area {
     flex: 1;
-    overflow-y: auto;
     padding: 24px;
-    background: linear-gradient(180deg, rgba(0, 212, 255, 0.02) 0%, transparent 100%);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background-image:
+        radial-gradient(circle at center, var(--border-glass) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: center;
+}
+
+/* Adjust scrollbar for messages area */
+.uss-messages-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.uss-messages-area::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
 }
 
 .uss-empty-state {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
     text-align: center;
+    color: var(--text-secondary);
+    padding: 40px;
 }
 
 .uss-empty-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
-    animation: uss-pulse 2s infinite;
+    font-size: 56px;
+    margin-bottom: 24px;
+    filter: grayscale(100%) opacity(0.5);
 }
 
 .uss-empty-state h3 {
-    color: #00d4ff;
-    margin: 0 0 8px 0;
-    font-size: 24px;
+    margin: 0 0 12px 0;
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 600;
 }
 
 .uss-empty-state p {
-    color: #b0b0b0;
-    margin: 0 0 24px 0;
+    margin: 0 0 32px 0;
+    max-width: 400px;
+    line-height: 1.5;
 }
 
 .uss-empty-features {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
 }
 
 .uss-feature-item {
-    color: #00ff88;
-    font-size: 14px;
+    background: var(--bg-surface-solid);
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
 }
 
-/* Messages */
+/* Individual Messages */
 .uss-message {
-    margin-bottom: 16px;
     display: flex;
-    animation: uss-slide-up 0.3s ease;
+    max-width: 75%;
+    position: relative;
+    animation: uss-msg-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes uss-msg-pop {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .uss-message-sent {
-    justify-content: flex-end;
+    align-self: flex-end;
 }
 
 .uss-message-received {
-    justify-content: flex-start;
+    align-self: flex-start;
 }
 
 .uss-message-content {
-    max-width: 60%;
-    padding: 12px 16px;
-    border-radius: 12px;
+    padding: 14px 18px;
+    border-radius: 18px;
     position: relative;
+    box-shadow: var(--shadow-card);
 }
 
 .uss-message-sent .uss-message-content {
-    background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
-    color: #0a0a0a;
-    border-bottom-right-radius: 4px;
+    background: var(--msg-sent-bg);
+    color: var(--msg-sent-text);
+    border-top-right-radius: 4px;
 }
 
 .uss-message-received .uss-message-content {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    color: #e0e0e0;
-    border-bottom-left-radius: 4px;
+    background: var(--msg-recv-bg);
+    color: var(--msg-recv-text);
+    border: 1px solid var(--border-color);
+    border-top-left-radius: 4px;
 }
 
 .uss-message-text {
-    word-wrap: break-word;
+    font-size: 15px;
     line-height: 1.5;
-    margin-bottom: 4px;
+    word-break: break-word;
 }
 
 .uss-message-meta {
     display: flex;
     align-items: center;
-    gap: 6px;
     justify-content: flex-end;
+    gap: 6px;
+    margin-top: 6px;
     font-size: 11px;
     opacity: 0.7;
 }
 
+.uss-message-sent .uss-message-meta {
+    color: rgba(255, 255, 255, 0.8);
+}
+
 .uss-verified-badge {
-    background: rgba(0, 255, 136, 0.2);
-    color: #00ff88;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 600;
+    color: inherit;
+    font-weight: bold;
 }
 
 /* Input Area */
 .uss-input-area {
-    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    background: var(--bg-surface-solid);
     padding: 20px 24px;
-    border-top: 2px solid #00d4ff;
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .uss-input-container {
     display: flex;
-    gap: 12px;
     align-items: flex-end;
+    gap: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-glass);
+    border-radius: 24px;
+    padding: 8px 16px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.2s;
+}
+
+.uss-input-container:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .uss-message-input {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(0, 212, 255, 0.3);
-    border-radius: 12px;
-    padding: 12px 16px;
-    color: #fff;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 10px 0;
     font-size: 15px;
+    font-family: var(--font-body);
     resize: none;
     max-height: 120px;
-    font-family: inherit;
-    transition: all 0.3s;
+    outline: none;
+    line-height: 1.5;
 }
 
-.uss-message-input:focus {
-    outline: none;
-    border-color: #00d4ff;
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+.uss-message-input::placeholder {
+    color: var(--text-tertiary);
 }
 
 .uss-send-btn {
-    background: linear-gradient(135deg, #00d4ff, #00ff88);
+    background: var(--accent-primary);
     border: none;
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    color: #0a0a0a;
-    cursor: pointer;
-    transition: all 0.2s;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+    flex-shrink: 0;
 }
 
 .uss-send-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+    background: var(--accent-gradient);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .uss-send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background: var(--bg-surface-hover);
+    color: var(--text-secondary);
 }
 
 .uss-input-footer {
-    margin-top: 8px;
     text-align: center;
+    margin-top: 12px;
 }
 
 .uss-encryption-indicator {
-    color: #00ff88;
     font-size: 12px;
-    display: flex;
+    color: var(--text-tertiary);
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 6px;
+    font-family: inherit;
+    font-weight: 500;
 }
 
 /* ============================================================================
-   MODAL DIALOGS (PREMIUM UX)
+   RESPONSIVE (Global Overrides)
    ============================================================================ */
 
-.uss-dialog-modal {
-    max-width: 400px !important;
-    text-align: center;
-}
-
-.uss-dialog-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    animation: uss-bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes uss-bounce {
-    0% {
-        transform: scale(0);
+@media (max-width: 600px) {
+    .uss-modal {
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
     }
 
-    50% {
-        transform: scale(1.2);
+    .uss-modal-header {
+        border-radius: 0;
     }
 
-    100% {
-        transform: scale(1);
+    .uss-chat-header {
+        padding: 16px;
     }
-}
 
-.uss-dialog-message {
-    font-size: 16px;
-    color: #e0e0e0;
-    line-height: 1.6;
-    margin: 0;
-    white-space: pre-line;
-    /* Allow newlines in messages */
-}
+    .uss-security-banner {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 10px 16px;
+        -webkit-overflow-scrolling: touch;
+    }
 
-.uss-modal-header-success {
-    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
-    border-bottom: 2px solid #96c93d;
-}
+    .uss-banner-item {
+        margin-right: 16px;
+    }
 
-.uss-modal-header-error {
-    background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
-    border-bottom: 2px solid #ef473a;
-}
+    .uss-messages-area {
+        padding: 16px;
+    }
 
-.uss-modal-header-warning {
-    background: linear-gradient(135deg, #f09819 0%, #edde5d 100%);
-    border-bottom: 2px solid #edde5d;
-}
+    .uss-message {
+        max-width: 85%;
+    }
 
-.uss-modal-header-critical {
-    background: linear-gradient(135deg, #8E0E00 0%, #1F1C18 100%);
-    border-bottom: 2px solid #ff0000;
-}
-
-.uss-modal-header-critical h2 {
-    color: #ff4444 !important;
+    .uss-input-area {
+        padding: 16px;
+    }
 }

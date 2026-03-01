@@ -61,7 +61,7 @@ async function verifyOtp(email, otp, type) {
 
 router.post('/send-register-otp', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, name } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password required' });
@@ -92,7 +92,7 @@ router.post('/send-register-otp', async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, otp, signingPublicKey } = req.body;
+    const { username, email, password, otp, signingPublicKey, name } = req.body;
 
     if (!username || !email || !password || !otp) {
       return res.status(400).json({ error: 'Username, email, password, and OTP required' });
@@ -119,11 +119,11 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     await db.query(
-      'INSERT INTO users (username, email, password_hash, signature_key_public) VALUES (?, ?, ?, ?)',
-      [username, email, passwordHash, signingPublicKey || null]
+      'INSERT INTO users (username, name, email, password_hash, signature_key_public) VALUES (?, ?, ?, ?, ?)',
+      [username, name || null, email, passwordHash, signingPublicKey || null]
     );
 
-    return res.json({ username, email, message: 'Registration successful' });
+    return res.json({ username, name: name || null, email, message: 'Registration successful' });
   } catch (err) {
     console.error('Register error', err);
     return res.status(500).json({ error: 'Internal server error' });

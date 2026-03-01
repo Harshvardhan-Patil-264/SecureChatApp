@@ -12,8 +12,11 @@ const pool = mysql.createPool({
   password: process.env.DB_PASS || 'pass',
   database: process.env.DB_NAME || 'chatapp',
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  connectionLimit: 20,       // more concurrent queries
+  queueLimit: 0,
+  enableKeepAlive: true,     // keep TCP connections warm — no reconnect latency
+  keepAliveInitialDelay: 0,
+  connectTimeout: 10000
 });
 
 module.exports = pool;
