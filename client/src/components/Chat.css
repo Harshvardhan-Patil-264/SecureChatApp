@@ -839,14 +839,14 @@
 
 .message-bubble {
   max-width: 65%;
-  padding: 14px 18px;
-  border-radius: 20px;
+  padding: 8px 12px;
+  border-radius: 16px;
   word-wrap: break-word;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  gap: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .message-wrapper.sent .message-bubble {
@@ -863,8 +863,8 @@
 }
 
 .message-text {
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.45;
   word-wrap: break-word;
 }
 
