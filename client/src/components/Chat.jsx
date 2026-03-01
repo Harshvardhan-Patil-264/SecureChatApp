@@ -51,13 +51,20 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Auto-scroll: instant via container scrollTop — never gets cancelled by re-renders
+  const scrollToBottom = (force = false) => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (force || isNearBottom) {
+      el.scrollTop = el.scrollHeight;
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom(true);
   }, [messages]);
 
   useEffect(() => {
@@ -338,6 +345,9 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sender: user.username, receiver: username })
     }).catch(() => { });
+
+    // Force scroll to bottom after messages render
+    setTimeout(() => scrollToBottom(true), 80);
   };
 
   const loadMessages = async (user, key) => {
@@ -790,7 +800,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
               <span>Messages are end-to-end encrypted. No one outside of this chat can read them.</span>
             </div>
 
-            <div className="messages-container">
+            <div className="messages-container" ref={messagesContainerRef}>
               <AnimatePresence initial={false}>
                 {messages.map((msg, i) => (
                   <motion.div
