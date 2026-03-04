@@ -53,9 +53,12 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   const [mediaUploading, setMediaUploading] = useState(false);
   const discoverTimeout = useRef(null);
 
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const messagesInnerRef = useRef(null);
   const fileInputRef = useRef(null);
 
   // Auto-scroll: instant via container scrollTop — never gets cancelled by re-renders
@@ -74,12 +77,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
 
   // Also scroll when container height grows (e.g. image/video finishes loading)
   useEffect(() => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
+    // Watch the INNER content wrapper whose height actually changes, not the fixed-size scrollbox
+    const innerEl = messagesInnerRef.current;
+    if (!innerEl) return;
     const observer = new ResizeObserver(() => scrollToBottom(true));
-    observer.observe(el);
+    observer.observe(innerEl);
     return () => observer.disconnect();
-  }, [messagesContainerRef.current]);
+  }, [selectedUser]); // Run when selectedUser changes (DOM renders the container)
 
   useEffect(() => {
     if (!username) return;
@@ -132,6 +136,11 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
           const list = Array.isArray(d) ? d : d?.users || [];
           setUsers(list);
         }).catch(() => { });
+    });
+
+    // Real-time presence — server emits on every connect/disconnect
+    socketRef.current.on('activeUsers', (usernameList) => {
+      setOnlineUsers(new Set(Array.isArray(usernameList) ? usernameList : []));
     });
 
     return () => {
@@ -767,7 +776,6 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                       <div className="user-avatar" style={{ backgroundColor: getAvatarColor(u.username) }}>
                         {getInitials(u.name || u.username)}
                       </div>
-                      <div className="online-indicator"></div>
                       {u.unreadCount > 0 && <div className="unread-badge">{u.unreadCount}</div>}
                     </div>
                     <div className="user-info">
@@ -778,7 +786,12 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                         </span>
                       </div>
                       <div className="user-preview">
-                        <span className="preview-text">{u.lastMessage?.content ? '🔒 Encrypted message' : 'No messages yet'}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>@{u.username}</span>
+                        {onlineUsers.has(u.username) ? (
+                          <span style={{ fontSize: '13px', color: 'var(--online-dot, #00C853)', marginLeft: '6px', fontWeight: '500' }}>• online</span>
+                        ) : (
+                          <span style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginLeft: '6px' }}>• offline</span>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -825,12 +838,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                 </div>
                 <div className="chat-header-info">
                   <h3>{selectedUser.name || selectedUser.username}</h3>
-                  {selectedUser.name && (
-                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '2px' }}>@{selectedUser.username}</div>
-                  )}
-                  <div className="encryption-status">
-                    <Lock size={12} />
-                    <span>End-to-end encrypted</span>
+                  <div className="chat-header-status">
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>@{selectedUser.username}</span>
+                    {onlineUsers.has(selectedUser.username) ? (
+                      <span className="status-text-online" style={{ color: 'var(--online-dot, #00C853)', fontSize: '13px', fontWeight: '500', marginLeft: '6px' }}>• online</span>
+                    ) : (
+                      <span className="status-text-offline" style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginLeft: '6px' }}>• offline</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -875,52 +889,54 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             </div>
 
             <div className="messages-container" ref={messagesContainerRef}>
-              <AnimatePresence initial={false}>
-                {messages.map((msg, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={`message-wrapper ${msg.sender === username ? "sent" : "received"}`}
-                  >
-                    <div className="message-bubble">
-                      {/* Media message or regular text */}
-                      {(() => {
-                        const raw = msg.content || msg.message || '';
-                        let isMedia = false;
-                        try { const p = JSON.parse(raw); if (p._media) isMedia = true; } catch (_) { }
-                        return isMedia
-                          ? <MediaBubble message={{ ...msg, content: raw }} sessionKey={sessionKey} />
-                          : <span className="message-text">{raw}</span>;
-                      })()}
+              <div className="messages-inner" ref={messagesInnerRef} style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '16px' }}>
+                <AnimatePresence initial={false}>
+                  {messages.map((msg, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className={`message-wrapper ${msg.sender === username ? "sent" : "received"}`}
+                    >
+                      <div className="message-bubble">
+                        {/* Media message or regular text */}
+                        {(() => {
+                          const raw = msg.content || msg.message || '';
+                          let isMedia = false;
+                          try { const p = JSON.parse(raw); if (p._media) isMedia = true; } catch (_) { }
+                          return isMedia
+                            ? <MediaBubble message={{ ...msg, content: raw }} sessionKey={sessionKey} />
+                            : <span className="message-text">{raw}</span>;
+                        })()}
 
-                      {msg.verified === true && (
-                        <span className="verified-badge" title="Message signature verified">
-                          <ShieldCheck size={12} /> Verified
-                        </span>
-                      )}
-                      {msg.verified === false && (
-                        <span className="unverified-badge" title="Signature verification failed">
-                          <ShieldAlert size={12} /> Unverified
-                        </span>
-                      )}
-
-                      <span className="message-footer">
-                        <span className="message-timestamp">{formatTime(msg.timestamp)}</span>
-                        {msg.sender === username && (
-                          <span className={`msg-ticks ${msg.seen ? 'ticks-seen' : msg.delivered ? 'ticks-delivered' : 'ticks-sent'}`}>
-                            {msg.seen || msg.delivered
-                              ? <CheckCheck size={14} strokeWidth={2.5} />
-                              : <Check size={14} strokeWidth={2.5} />
-                            }
+                        {msg.verified === true && (
+                          <span className="verified-badge" title="Message signature verified">
+                            <ShieldCheck size={12} /> Verified
                           </span>
                         )}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              <div ref={messagesEndRef} />
+                        {msg.verified === false && (
+                          <span className="unverified-badge" title="Signature verification failed">
+                            <ShieldAlert size={12} /> Unverified
+                          </span>
+                        )}
+
+                        <span className="message-footer">
+                          <span className="message-timestamp">{formatTime(msg.timestamp)}</span>
+                          {msg.sender === username && (
+                            <span className={`msg-ticks ${msg.seen ? 'ticks-seen' : msg.delivered ? 'ticks-delivered' : 'ticks-sent'}`}>
+                              {msg.seen || msg.delivered
+                                ? <CheckCheck size={14} strokeWidth={2.5} />
+                                : <Check size={14} strokeWidth={2.5} />
+                              }
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                <div ref={messagesEndRef} />
+              </div>
             </div>
 
             <div className="message-input-container">

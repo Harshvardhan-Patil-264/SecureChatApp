@@ -1,127 +1,213 @@
-/* MediaBubble.css */
+/* MediaBubble.css — WhatsApp-style compact media */
 
-.media-bubble-container {
+/* ── Wrapper ── */
+.mb-wrap {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    min-width: 180px;
-    max-width: 320px;
+    gap: 4px;
+    min-width: 160px;
+    max-width: 240px;
+    /* WhatsApp image width */
 }
 
-/* ── Loading state ── */
-.media-loading {
+/* ── Loading ── */
+.mb-loading {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    font-size: 13px;
+    gap: 8px;
+    padding: 8px 4px;
+    font-size: 12px;
     color: var(--text-secondary);
+    min-width: 140px;
 }
 
-.media-spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(58, 134, 255, 0.3);
+.mb-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(58, 134, 255, 0.25);
     border-top-color: #3A86FF;
     border-radius: 50%;
-    animation: spin 0.75s linear infinite;
+    animation: mbspin 0.7s linear infinite;
     flex-shrink: 0;
 }
 
-@keyframes spin {
+@keyframes mbspin {
     to {
         transform: rotate(360deg);
     }
 }
 
-/* ── Error state ── */
-.media-error {
+/* ── Error ── */
+.mb-err {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
+    gap: 6px;
+    font-size: 12px;
     color: #ef4444;
-    padding: 6px 0;
 }
 
-/* ── Media content ── */
-.media-img {
-    width: 100%;
-    max-width: 280px;
-    max-height: 240px;
-    object-fit: cover;
-    border-radius: 10px;
+/* ── Image ── */
+.mb-img-link {
     display: block;
-    cursor: pointer;
-    transition: opacity 0.2s;
 }
 
-.media-img:hover {
-    opacity: 0.92;
-}
-
-.media-video {
+.mb-img {
     width: 100%;
-    max-width: 280px;
-    border-radius: 10px;
+    max-width: 240px;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+    cursor: zoom-in;
+    transition: opacity 0.15s;
+}
+
+.mb-img:hover {
+    opacity: 0.9;
+}
+
+/* ── Video ── */
+.mb-video {
+    width: 100%;
+    max-width: 240px;
+    max-height: 180px;
+    border-radius: 8px;
     display: block;
     background: #000;
 }
 
-.media-audio {
-    width: 100%;
-    max-width: 280px;
-}
-
-/* ── Bottom meta row ── */
-.media-meta-row {
+/* ── Custom audio player (WhatsApp style) ── */
+.wa-audio {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--text-tertiary);
-    flex-wrap: wrap;
+    gap: 10px;
+    padding: 6px 4px;
+    min-width: 200px;
+    max-width: 240px;
 }
 
-.media-name {
-    font-weight: 500;
-    max-width: 140px;
+.wa-audio-play {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent-primary, #3A86FF);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.wa-audio-play:hover {
+    opacity: 0.85;
+    transform: scale(1.06);
+}
+
+.wa-audio-middle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+/* Track bar */
+.wa-audio-track {
+    position: relative;
+    height: 3px;
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.wa-audio-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: var(--accent-primary, #3A86FF);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+.wa-audio-dot {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background: var(--accent-primary, #3A86FF);
+    border-radius: 50%;
+    transition: left 0.1s linear;
+}
+
+.wa-audio-time {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.wa-audio-lock {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+/* ── Footer meta row ── */
+.mb-footer {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    padding: 0 1px;
+}
+
+.mb-fname {
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 130px;
+    font-weight: 500;
 }
 
-.media-size {
-    opacity: 0.7;
+.mb-size {
+    opacity: 0.8;
+    white-space: nowrap;
 }
 
-.media-dl-btn {
-    margin-left: auto;
+.mb-dl {
     display: flex;
     align-items: center;
     color: var(--accent-primary);
-    opacity: 0.8;
+    opacity: 0.75;
     transition: opacity 0.15s;
+    flex-shrink: 0;
 }
 
-.media-dl-btn:hover {
+.mb-dl:hover {
     opacity: 1;
 }
 
-.media-file-link {
+/* ── File link ── */
+.mb-file {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 13px;
     color: var(--accent-primary);
     text-decoration: none;
 }
 
-.media-file-link:hover {
+.mb-file:hover {
     text-decoration: underline;
 }
 
-.media-parse-error {
-    font-size: 12px;
+.mb-error {
+    font-size: 11px;
     color: #ef4444;
 }
