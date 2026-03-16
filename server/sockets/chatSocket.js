@@ -48,6 +48,11 @@ function setup(server) {
         if (undelivered && undelivered.length) {
           for (const m of undelivered) socket.emit('message', m);
           await messageService.markAsDelivered(undelivered);
+          // For any ephemeral messages just delivered, start their timer
+          const ephemeralUndelivered = undelivered.filter(m => m.is_ephemeral);
+          for (const m of ephemeralUndelivered) {
+            await messageService.markEphemeralReadAt(m.sender, username);
+          }
         }
 
         // Only notify parties who care: the connecting user's contacts
@@ -61,8 +66,12 @@ function setup(server) {
     // chat event: accept a message object and process
     socket.on('chat', async (messageObj) => {
       try {
-        // messageObj expected fields: sender, receiver, content, cipher, image, type, messageId, etc.
-        const saved = await messageService.sendOrStoreMessage(io, messageObj);
+        // messageObj expected fields: sender, receiver, content, cipher, image, type, messageId, isEphemeral, ephemeralDuration etc.
+        const saved = await messageService.sendOrStoreMessage(io, {
+          ...messageObj,
+          isEphemeral: !!messageObj.isEphemeral,
+          ephemeralDuration: messageObj.isEphemeral ? (messageObj.ephemeralDuration || 10) : null
+        });
         // Optionally acknowledge to sender with saved record:
         socket.emit('message-saved', saved);
       } catch (err) {

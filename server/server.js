@@ -25,6 +25,9 @@ const mediaRoutes = require('./routes/mediaRoutes');
 // Socket setup
 const setupChatSocket = require('./sockets/chatSocket');
 
+// Ephemeral message cron service
+const ephemeralService = require('./services/ephemeralService');
+
 const app = express();
 
 // Middlewares
@@ -58,9 +61,11 @@ const io = setupChatSocket(server);
 app.set('io', io);
 
 // Listen
-// Listen
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`ChatApp server running on port ${PORT}`);
   console.log(`Network access enabled: http://0.0.0.0:${PORT}`);
+
+  // Start ephemeral message cleanup cron (after server is up and io is ready)
+  ephemeralService.start(io);
 });

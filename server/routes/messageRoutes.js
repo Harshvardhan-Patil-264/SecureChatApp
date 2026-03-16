@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../config/db');
 const messageService = require('../services/messageService');
 const signatureService = require('../services/signatureService');
+const { markEphemeralReadAt } = require('../services/messageService');
 
 const router = express.Router();
 
@@ -14,7 +15,13 @@ router.get('/:userA/:userB', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT id, sender, receiver, content AS message, msg_no AS msgNo, signature, verified, timestamp, delivered, seen
+      `SELECT id, sender, receiver,
+              CASE WHEN content IS NULL THEN '' ELSE content END AS message,
+              msg_no AS msgNo, signature, verified, timestamp, delivered, seen,
+              is_ephemeral AS isEphemeral,
+              ephemeral_duration AS ephemeralDuration,
+              read_at AS readAt,
+              CASE WHEN content IS NULL THEN 1 ELSE 0 END AS isDeleted
        FROM messages
        WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
        ORDER BY timestamp ASC`,
@@ -37,6 +44,9 @@ router.put('/seen', async (req, res) => {
       `UPDATE messages SET seen = 1 WHERE sender = ? AND receiver = ? AND seen = 0`,
       [sender, receiver]
     );
+    // Start the ephemeral countdown for any unread ephemeral messages
+    await markEphemeralReadAt(sender, receiver);
+
     // Emit socket event so sender's UI updates
     const io = req.app.get('io');
     if (io) {
@@ -49,9 +59,9 @@ router.put('/seen', async (req, res) => {
   }
 });
 
-// Post a new message (REGULAR MESSAGES ONLY)
+// Post a new message (supports ephemeral flag)
 router.post('/', async (req, res) => {
-  const { sender, receiver, message, signature } = req.body || {};
+  const { sender, receiver, message, signature, isEphemeral, ephemeralDuration } = req.body || {};
 
   if (!sender || !receiver || !message) {
     return res.status(400).json({ error: 'sender, receiver and message are required' });
@@ -75,7 +85,9 @@ router.post('/', async (req, res) => {
       signature: signature || null,
       verified: verified,
       type: 'text',
-      delivered: false // will be updated by service
+      delivered: false,
+      isEphemeral: !!isEphemeral,
+      ephemeralDuration: isEphemeral ? (ephemeralDuration || 10) : null
     };
 
     const savedMessage = await messageService.sendOrStoreMessage(io, messageObj);

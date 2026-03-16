@@ -22,7 +22,7 @@ import SecurityAlert from './UltraSecureChat/SecurityAlert';
 import USSChatView from './UltraSecureChat/USSChatView';
 import Profile from './Profile';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText } from 'lucide-react';
+import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText, Timer } from 'lucide-react';
 import Requests from './Requests';
 import MediaBubble from './MediaBubble';
 
@@ -55,11 +55,41 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
 
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
+  // Ephemeral message state (sender-only UI)
+  const [ephemeralMode, setEphemeralMode] = useState(false);
+  // Store duration as {h, m, s} for the HH:MM:SS spinner
+  const [ephemeralTime, setEphemeralTime] = useState({ h: 0, m: 0, s: 10 });
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  // Set of message IDs that have been expired by the server — renders placeholder
+  const [expiredIds, setExpiredIds] = useState(new Set());
+
+  // Computed total seconds from HH:MM:SS state
+  const ephemeralDuration = ephemeralTime.h * 3600 + ephemeralTime.m * 60 + ephemeralTime.s;
+
+  // Helper: format {h,m,s} as a compact label like "10s", "1h 30m", "2h"
+  const fmtEphemeralLabel = ({ h, m, s }) => {
+    if (h === 0 && m === 0) return `${s}s`;
+    if (h === 0) return m + 'm' + (s > 0 ? ` ${s}s` : '');
+    return h + 'h' + (m > 0 ? ` ${m}m` : '') + (s > 0 ? ` ${s}s` : '');
+  };
+
+  // Spinner step handlers with wrapping
+  const stepEphemeral = (unit, dir) => {
+    setEphemeralTime(prev => {
+      const limits = { h: 23, m: 59, s: 59 };
+      let val = prev[unit] + dir;
+      if (val < 0) val = limits[unit];
+      if (val > limits[unit]) val = 0;
+      return { ...prev, [unit]: val };
+    });
+  };
+
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const messagesInnerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const holdTimerRef = useRef(null); // for ephemeral spinner long-press
 
   // Auto-scroll: instant via container scrollTop — never gets cancelled by re-renders
   const scrollToBottom = (force = false) => {
@@ -251,9 +281,19 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     };
     socketRef.current.on('messages_seen', handleSeen);
 
+    // When server wipes an ephemeral message, replace its content with the deleted placeholder
+    const handleMessageExpired = ({ id }) => {
+      setExpiredIds(prev => new Set(prev).add(id));
+      setMessages(prev =>
+        prev.map(m => (m.id === id ? { ...m, content: null, message: null, isDeleted: true } : m))
+      );
+    };
+    socketRef.current.on('message_expired', handleMessageExpired);
+
     return () => {
       socketRef.current.off("message", handleMessage);
       socketRef.current.off('messages_seen', handleSeen);
+      socketRef.current.off('message_expired', handleMessageExpired);
     };
   }, [selectedUser, sessionKey]);
 
@@ -486,6 +526,11 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       message: encryptedContent,
       msgNo,
       signature,
+      // Ephemeral fields — only added when mode is on
+      ...(ephemeralMode && {
+        isEphemeral: true,
+        ephemeralDuration,
+      }),
     };
 
     try {
@@ -496,9 +541,18 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       });
       if (!res.ok) throw new Error("Failed to send message");
       const data = await res.json();
-      const displayed = { ...data, content: newMessage.trim(), verified: signature ? true : null, timestamp: data.timestamp || new Date().toISOString() };
+      const displayed = {
+        ...data,
+        content: newMessage.trim(),
+        verified: signature ? true : null,
+        timestamp: data.timestamp || new Date().toISOString(),
+        isEphemeral: ephemeralMode,
+        ephemeralDuration: ephemeralMode ? ephemeralDuration : null,
+      };
       setMessages((prev) => [...prev, displayed]);
       setNewMessage("");
+      // Reset ephemeral mode after each send so user must consciously re-enable
+      if (ephemeralMode) setEphemeralMode(false);
     } catch (err) { }
   };
 
@@ -899,8 +953,12 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                       className={`message-wrapper ${msg.sender === username ? "sent" : "received"}`}
                     >
                       <div className="message-bubble">
-                        {/* Media message or regular text */}
-                        {(() => {
+                        {/* Deleted / expired placeholder — shown to BOTH sides */}
+                        {(msg.isDeleted || expiredIds.has(msg.id)) ? (
+                          <span className="message-text ephemeral-deleted">
+                            This message was deleted.
+                          </span>
+                        ) : (() => {
                           const raw = msg.content || msg.message || '';
                           let isMedia = false;
                           try { const p = JSON.parse(raw); if (p._media) isMedia = true; } catch (_) { }
@@ -909,14 +967,22 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                             : <span className="message-text">{raw}</span>;
                         })()}
 
-                        {msg.verified === true && (
+                        {/* Only show verified badges on non-deleted messages */}
+                        {!msg.isDeleted && !expiredIds.has(msg.id) && msg.verified === true && (
                           <span className="verified-badge" title="Message signature verified">
                             <ShieldCheck size={12} /> Verified
                           </span>
                         )}
-                        {msg.verified === false && (
+                        {!msg.isDeleted && !expiredIds.has(msg.id) && msg.verified === false && (
                           <span className="unverified-badge" title="Signature verification failed">
                             <ShieldAlert size={12} /> Unverified
+                          </span>
+                        )}
+
+                        {/* Sender-only: small ephemeral indicator (only while message is still alive) */}
+                        {msg.sender === username && msg.isEphemeral && !msg.isDeleted && !expiredIds.has(msg.id) && (
+                          <span className="ephemeral-badge" title={`Self-destructs ${msg.ephemeralDuration >= 3600 ? msg.ephemeralDuration / 3600 + 'h' : msg.ephemeralDuration + 's'} after read`}>
+                            <Timer size={11} /> {msg.ephemeralDuration >= 86400 ? '24h' : msg.ephemeralDuration >= 3600 ? '1h' : '10s'}
                           </span>
                         )}
 
@@ -959,13 +1025,176 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                   ? <span style={{ width: 18, height: 18, border: '2px solid rgba(58,134,255,0.3)', borderTopColor: '#3A86FF', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.75s linear infinite' }} />
                   : <Paperclip size={20} />}
               </button>
+
+              {/* Ephemeral timer toggle — sender-only UI */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <button
+                  className={`input-action-btn${ephemeralMode ? ' ephemeral-active' : ''}`}
+                  title={ephemeralMode ? `Ephemeral ON (${fmtEphemeralLabel(ephemeralTime)}) — click to configure` : 'Send as ephemeral message'}
+                  onClick={() => setShowDurationPicker(p => !p)}
+                  style={ephemeralMode ? { color: '#FF6B6B', position: 'relative' } : { position: 'relative' }}
+                >
+                  <Timer size={20} />
+                  {ephemeralMode && (
+                    <span style={{
+                      position: 'absolute', top: -6, right: -6,
+                      background: '#FF6B6B', color: '#fff',
+                      fontSize: '8px', fontWeight: 700, lineHeight: 1,
+                      borderRadius: 6, padding: '2px 4px',
+                      whiteSpace: 'nowrap', pointerEvents: 'none'
+                    }}>
+                      {fmtEphemeralLabel(ephemeralTime)}
+                    </span>
+                  )}
+                </button>
+
+                {/* HH:MM:SS spinner picker */}
+                {showDurationPicker && (
+                  <div style={{
+                    position: 'absolute', bottom: '115%', left: '50%', transform: 'translateX(-50%)',
+                    background: 'linear-gradient(145deg, #1a2535, #141e2d)',
+                    border: '1px solid rgba(255,107,107,0.2)',
+                    borderRadius: 16, padding: '16px 20px 14px',
+                    boxShadow: '0 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+                    zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                    minWidth: 210, userSelect: 'none'
+                  }}>
+                    {/* Title */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Timer size={13} color="#FF6B6B" />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#FF6B6B', letterSpacing: '0.09em', textTransform: 'uppercase' }}>
+                        Self-destruct after
+                      </span>
+                    </div>
+
+                    {/* Spinner columns */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {[['h', 'HRS', 23], ['m', 'MIN', 59], ['s', 'SEC', 59]].map(([unit, label], idx) => (
+                        <div key={unit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {idx > 0 && (
+                            <span style={{ color: 'rgba(255,107,107,0.4)', fontWeight: 800, fontSize: 22, lineHeight: 1, alignSelf: 'center', marginBottom: 2 }}>:</span>
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>{label}</span>
+
+                            {/* Up chevron — uses holdTimerRef so interval survives re-renders */}
+                            <button
+                              onMouseDown={() => {
+                                stepEphemeral(unit, 1);
+                                holdTimerRef.current = setInterval(() => stepEphemeral(unit, 1), 120);
+                              }}
+                              onMouseUp={() => clearInterval(holdTimerRef.current)}
+                              onMouseLeave={() => clearInterval(holdTimerRef.current)}
+                              onTouchStart={() => {
+                                stepEphemeral(unit, 1);
+                                holdTimerRef.current = setInterval(() => stepEphemeral(unit, 1), 120);
+                              }}
+                              onTouchEnd={() => clearInterval(holdTimerRef.current)}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                color: 'rgba(255,107,107,0.7)', padding: '2px 8px',
+                                fontSize: 13, lineHeight: 1
+                              }}
+                            >▲</button>
+
+                            {/* Value chip — pure div, no input */}
+                            <div style={{
+                              width: 48, height: 48,
+                              background: 'rgba(255,255,255,0.05)',
+                              border: '1px solid rgba(255,107,107,0.25)',
+                              borderRadius: 10,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 22, fontWeight: 800, color: '#fff',
+                              fontFamily: "'SF Mono', 'Fira Code', monospace",
+                              letterSpacing: '-0.5px',
+                              boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.3)'
+                            }}>
+                              {String(ephemeralTime[unit]).padStart(2, '0')}
+                            </div>
+
+                            {/* Down chevron */}
+                            <button
+                              onMouseDown={() => {
+                                stepEphemeral(unit, -1);
+                                holdTimerRef.current = setInterval(() => stepEphemeral(unit, -1), 120);
+                              }}
+                              onMouseUp={() => clearInterval(holdTimerRef.current)}
+                              onMouseLeave={() => clearInterval(holdTimerRef.current)}
+                              onTouchStart={() => {
+                                stepEphemeral(unit, -1);
+                                holdTimerRef.current = setInterval(() => stepEphemeral(unit, -1), 120);
+                              }}
+                              onTouchEnd={() => clearInterval(holdTimerRef.current)}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                color: 'rgba(255,107,107,0.7)', padding: '2px 8px',
+                                fontSize: 13, lineHeight: 1
+                              }}
+                            >▼</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick-pick presets */}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {[['10s', { h: 0, m: 0, s: 10 }], ['1m', { h: 0, m: 1, s: 0 }], ['1h', { h: 1, m: 0, s: 0 }], ['24h', { h: 23, m: 59, s: 59 }]].map(([lbl, val]) => (
+                        <button key={lbl}
+                          onClick={() => setEphemeralTime(val)}
+                          style={{
+                            padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                            background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)',
+                            border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer'
+                          }}
+                        >{lbl}</button>
+                      ))}
+                    </div>
+
+                    {/* Set / Off buttons */}
+                    <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                      <button
+                        onClick={() => {
+                          if (ephemeralDuration < 1) return;
+                          setEphemeralMode(true);
+                          setShowDurationPicker(false);
+                        }}
+                        disabled={ephemeralDuration < 1}
+                        style={{
+                          flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                          background: ephemeralDuration >= 1
+                            ? 'linear-gradient(135deg, rgba(255,107,107,0.25), rgba(255,107,107,0.15))'
+                            : 'rgba(255,255,255,0.04)',
+                          color: ephemeralDuration >= 1 ? '#FF8080' : 'rgba(255,255,255,0.2)',
+                          border: `1px solid ${ephemeralDuration >= 1 ? 'rgba(255,107,107,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                          cursor: ephemeralDuration >= 1 ? 'pointer' : 'not-allowed',
+                          transition: 'all 0.2s'
+                        }}
+                      >✓ Set timer</button>
+                      {ephemeralMode && (
+                        <button
+                          onClick={() => { setEphemeralMode(false); setShowDurationPicker(false); }}
+                          style={{
+                            padding: '9px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                            color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)',
+                            background: 'rgba(255,255,255,0.03)', cursor: 'pointer'
+                          }}
+                        >✕</button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+
+
               <input
                 type="text"
-                placeholder="Type an encrypted message..."
+                placeholder={ephemeralMode ? `Ephemeral message (${fmtEphemeralLabel(ephemeralTime)})…` : 'Type an encrypted message...'}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 className="message-input"
+                style={ephemeralMode ? { borderColor: 'rgba(255,107,107,0.4)' } : {}}
               />
               <button className="send-btn" onClick={sendMessage} disabled={!newMessage.trim()}>
                 <Send size={18} />
@@ -985,35 +1214,41 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
         )}
       </div>
 
-      {showUSSModal && (
-        <CreateUSSModal
-          isOpen={showUSSModal}
-          onClose={() => setShowUSSModal(false)}
-          users={users}
-          currentUser={username}
-          onSessionCreated={handleUSSSessionCreated}
-        />
-      )}
+      {
+        showUSSModal && (
+          <CreateUSSModal
+            isOpen={showUSSModal}
+            onClose={() => setShowUSSModal(false)}
+            users={users}
+            currentUser={username}
+            onSessionCreated={handleUSSSessionCreated}
+          />
+        )
+      }
 
-      {showSecurityAlert && ussSession && (
-        <SecurityAlert
-          session={ussSession}
-          onClose={() => {
-            setShowSecurityAlert(false);
-            setUssSession(null);
-          }}
-        />
-      )}
+      {
+        showSecurityAlert && ussSession && (
+          <SecurityAlert
+            session={ussSession}
+            onClose={() => {
+              setShowSecurityAlert(false);
+              setUssSession(null);
+            }}
+          />
+        )
+      }
 
-      {showProfile && (
-        <Profile
-          username={username}
-          onClose={() => setShowProfile(false)}
-          onProfileUpdate={(updated) => {
-            if (updated.name) setMyName(updated.name);
-          }}
-        />
-      )}
-    </div>
+      {
+        showProfile && (
+          <Profile
+            username={username}
+            onClose={() => setShowProfile(false)}
+            onProfileUpdate={(updated) => {
+              if (updated.name) setMyName(updated.name);
+            }}
+          />
+        )
+      }
+    </div >
   );
 }

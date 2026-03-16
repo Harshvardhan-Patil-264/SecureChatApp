@@ -941,6 +941,38 @@
 }
 
 /* ===========================
+   EPHEMERAL MESSAGES
+   =========================== */
+
+/* "This message was deleted." placeholder */
+.ephemeral-deleted {
+  font-style: italic;
+  opacity: 0.55;
+  font-size: 13px;
+  user-select: none;
+}
+
+/* Sender-side tiny timer badge shown only to sender while message is alive */
+.ephemeral-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 107, 107, 0.85);
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+/* Glow the Timer icon button when ephemeral mode is active */
+.input-action-btn.ephemeral-active {
+  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(255, 107, 107, 0.35);
+  color: #FF6B6B;
+  box-shadow: 0 0 8px rgba(255, 107, 107, 0.2);
+}
+
+/* ===========================
    MESSAGE INPUT
    =========================== */
 
@@ -982,6 +1014,18 @@
   outline: none;
   transition: all 0.25s;
   font-family: inherit;
+}
+
+/* Hide native spinner arrows on ephemeral time inputs so our custom ▲▼ buttons show */
+.ephemeral-time-input::-webkit-inner-spin-button,
+.ephemeral-time-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ephemeral-time-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .message-input::placeholder {

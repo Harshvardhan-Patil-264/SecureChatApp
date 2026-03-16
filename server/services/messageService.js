@@ -11,10 +11,12 @@ const activeUserManager = require('./activeUserManager');
  * messageObj keys: sender, receiver, content, type, delivered (boolean), timestamp (optional)
  */
 async function saveMessageToDb(messageObj) {
-  const sql = `INSERT INTO messages (sender, receiver, content, msg_no, signature, verified, type, delivered, timestamp)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
+  const sql = `INSERT INTO messages
+    (sender, receiver, content, msg_no, signature, verified, type, delivered, is_ephemeral, ephemeral_duration, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
   const deliveredFlag = messageObj.delivered ? 1 : 0;
   const verifiedFlag = messageObj.verified ? 1 : 0;
+  const isEphemeral = messageObj.isEphemeral ? 1 : 0;
   const [res] = await db.query(sql, [
     messageObj.sender,
     messageObj.receiver,
@@ -23,7 +25,9 @@ async function saveMessageToDb(messageObj) {
     messageObj.signature || null,
     verifiedFlag,
     messageObj.type || null,
-    deliveredFlag
+    deliveredFlag,
+    isEphemeral,
+    isEphemeral ? (messageObj.ephemeralDuration || 10) : null
   ]);
   return { id: res.insertId, ...messageObj };
 }
@@ -80,9 +84,54 @@ async function sendOrStoreMessage(io, messageObj) {
   return saved;
 }
 
+/**
+ * Mark read_at for all unread ephemeral messages from sender → receiver.
+ * Called when receiver opens the chat (same time as seen marking).
+ */
+async function markEphemeralReadAt(sender, receiver) {
+  // Note: no `seen = 0` guard here — seen is already set to 1 before this is called.
+  // read_at IS NULL ensures we only stamp it once (first time recipient reads).
+  await db.query(
+    `UPDATE messages
+       SET read_at = NOW()
+     WHERE sender = ? AND receiver = ?
+       AND is_ephemeral = 1
+       AND read_at IS NULL`,
+    [sender, receiver]
+  );
+}
+
+/**
+ * Fetch all ephemeral messages whose timer has expired (content not yet wiped).
+ */
+async function getExpiredEphemeralMessages() {
+  const [rows] = await db.query(
+    `SELECT id, sender, receiver
+       FROM messages
+      WHERE is_ephemeral = 1
+        AND read_at IS NOT NULL
+        AND content IS NOT NULL
+        AND DATE_ADD(read_at, INTERVAL ephemeral_duration SECOND) <= NOW()`
+  );
+  return rows;
+}
+
+/**
+ * Wipe the content of a single message (keeps the row for placeholder rendering).
+ */
+async function deleteEphemeralMessageContent(id) {
+  await db.query(
+    `UPDATE messages SET content = NULL WHERE id = ?`,
+    [id]
+  );
+}
+
 module.exports = {
   saveMessageToDb,
   getUndeliveredMessages,
   markAsDelivered,
-  sendOrStoreMessage
+  sendOrStoreMessage,
+  markEphemeralReadAt,
+  getExpiredEphemeralMessages,
+  deleteEphemeralMessageContent
 };
