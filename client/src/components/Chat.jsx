@@ -22,9 +22,12 @@ import SecurityAlert from './UltraSecureChat/SecurityAlert';
 import USSChatView from './UltraSecureChat/USSChatView';
 import Profile from './Profile';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText, Timer } from 'lucide-react';
+import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText, Timer, Activity } from 'lucide-react';
 import Requests from './Requests';
 import MediaBubble from './MediaBubble';
+import FlowAnalyzerModal from './FlowAnalyzerModal';
+import { toMorse, fromMorse, looksLikeMorse } from '../lib/morse';
+
 
 export default function Chat({ username, onLogout, theme, toggleTheme }) {
   const [users, setUsers] = useState([]);
@@ -37,6 +40,8 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   // Session key cache — avoid recomputing ECDH on every message
   const sessionKeyCache = useRef(new Map());
   const [signingPrivateKey, setSigningPrivateKey] = useState(null);
+  const [analyzerMsg, setAnalyzerMsg] = useState(null);
+
 
   const [showUSSModal, setShowUSSModal] = useState(false);
   const [ussSession, setUssSession] = useState(null);
@@ -217,7 +222,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
         if (sessionKey && msg.msgNo !== undefined && encryptedContent) {
           try {
             const plain = await decryptMessage(sessionKey, msg.msgNo, encryptedContent);
-            msg = { ...msg, content: plain, message: plain, verified };
+            let finalContent = plain;
+            let morseText = null;
+            if (looksLikeMorse(plain)) {
+                finalContent = fromMorse(plain);
+                morseText = plain;
+            }
+            msg = { ...msg, content: finalContent, message: finalContent, verified, encryptedRaw: encryptedContent, morseText };
           } catch (e) {
             msg = { ...msg, content: encryptedContent, message: encryptedContent, verified };
           }
@@ -428,7 +439,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             if (msg.msgNo !== undefined && content) {
               try {
                 const plain = await decryptMessage(key, msg.msgNo, content);
-                return { ...msg, message: plain, content: plain };
+                let finalContent = plain;
+                let morseText = null;
+                if (looksLikeMorse(plain)) {
+                  finalContent = fromMorse(plain);
+                  morseText = plain;
+                }
+                return { ...msg, message: finalContent, content: finalContent, encryptedRaw: content, morseText };
               } catch (e) {
                 return msg;
               }
@@ -509,8 +526,10 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
 
     const msgNo = Date.now();
     let encryptedContent;
+    let morseText = null;
     try {
-      encryptedContent = await encryptMessage(sessionKey, msgNo, newMessage.trim());
+      morseText = toMorse(newMessage.trim());
+      encryptedContent = await encryptMessage(sessionKey, msgNo, morseText);
     } catch (e) { return; }
 
     let signature = null;
@@ -548,6 +567,8 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
         timestamp: data.timestamp || new Date().toISOString(),
         isEphemeral: ephemeralMode,
         ephemeralDuration: ephemeralMode ? ephemeralDuration : null,
+        encryptedRaw: encryptedContent,
+        morseText
       };
       setMessages((prev) => [...prev, displayed]);
       setNewMessage("");
@@ -987,6 +1008,16 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                         )}
 
                         <span className="message-footer">
+                          {!msg.isDeleted && !expiredIds.has(msg.id) && !msg._media && (
+                            <button
+                                onClick={() => setAnalyzerMsg(msg)}
+                                className="flow-analyzer-btn"
+                                style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center', opacity: 0.7 }}
+                                title="Analyze Encryption Flow"
+                            >
+                                <Activity size={12} />
+                            </button>
+                          )}
                           <span className="message-timestamp">{formatTime(msg.timestamp)}</span>
                           {msg.sender === username && (
                             <span className={`msg-ticks ${msg.seen ? 'ticks-seen' : msg.delivered ? 'ticks-delivered' : 'ticks-sent'}`}>
@@ -1249,6 +1280,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
           />
         )
       }
+
+      {analyzerMsg && (
+        <FlowAnalyzerModal
+          message={analyzerMsg}
+          onClose={() => setAnalyzerMsg(null)}
+        />
+      )}
     </div >
   );
 }
