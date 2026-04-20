@@ -5,7 +5,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import ModalDialog from './ModalDialog';
+import USSFlowAnalyzerModal from './USSFlowAnalyzerModal';
 import { io } from 'socket.io-client';
+import { Check, CheckCheck, ShieldCheck, Activity } from 'lucide-react';
 import { encryptMessage, signMessage, decryptMessage, verifySignature, importSigningPublicKey } from '../../lib/crypto';
 import { API_URL } from '../../config';
 import './UltraSecureChat.css';
@@ -15,6 +17,7 @@ const USSChatView = ({ session, currentUser, otherUser, sessionKey, onExit }) =>
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [signingPrivateKey, setSigningPrivateKey] = useState(null);
+    const [analyzerMsg, setAnalyzerMsg] = useState(null);
     const messagesEndRef = useRef(null);
     const socketRef = useRef(null);
     const [dialogState, setDialogState] = useState({ isOpen: false, type: 'info', title: '', message: '' });
@@ -36,7 +39,11 @@ const USSChatView = ({ session, currentUser, otherUser, sessionKey, onExit }) =>
     useEffect(() => {
         // Connect to socket
         console.log('🔌 Connecting to Socket.IO...');
-        socketRef.current = io(API_URL);
+        socketRef.current = io(API_URL, {
+            transports: ['websocket'],
+            reconnectionDelay: 500,
+            reconnectionDelayMax: 2000,
+        });
 
         socketRef.current.on('connect', () => {
             console.log('✅ Socket connected:', socketRef.current.id);
@@ -51,11 +58,16 @@ const USSChatView = ({ session, currentUser, otherUser, sessionKey, onExit }) =>
             // Only process if it's for this session
             if (msg.uss_session_id === session.sessionId) {
                 console.log('✅ Message is for this session');
+                
+                // Automatically mark as seen if the chat is open
+                markMessagesAsSeen();
+
                 try {
                     const plaintext = await decryptMessage(sessionKey, msg.msgNo, msg.content);
                     console.log('🔓 Decrypted message:', plaintext);
-
-                    // Verify signature
+                    
+                    // Verify signature logic...
+                    // (keeping original logic for brevity)
                     let verified = false;
                     if (msg.signature) {
                         const keyRes = await fetch(`${API_URL}/api/signatures/${msg.sender}`);
@@ -66,27 +78,25 @@ const USSChatView = ({ session, currentUser, otherUser, sessionKey, onExit }) =>
                         }
                     }
 
-                    const decryptedMsg = {
-                        ...msg,
-                        decryptedContent: plaintext,
-                        verified
-                    };
+                    const decryptedMsg = { ...msg, decryptedContent: plaintext, verified };
 
-                    // Add to messages (avoid duplicates)
                     setMessages(prev => {
-                        const exists = prev.find(m => m.id === msg.id || (m.msgNo === msg.msgNo && m.sender === msg.sender));
-                        if (exists) {
-                            console.log('⚠️ Duplicate message, skipping');
-                            return prev;
-                        }
-                        console.log('✅ Adding message to state');
+                        const exists = prev.find(m => m.id === msg.id);
+                        if (exists) return prev;
                         return [...prev, decryptedMsg];
                     });
                 } catch (err) {
                     console.error('Failed to decrypt incoming message:', err);
                 }
-            } else {
-                console.log('⏭️ Message is for different session, skipping');
+            }
+        });
+
+        // Listen for seen status updates
+        socketRef.current.on('uss_messages_seen', ({ sender, receiver }) => {
+            if (sender === currentUser && receiver === otherUser) {
+                setMessages(prev => prev.map(m => 
+                    m.sender === currentUser ? { ...m, seen: 1 } : m
+                ));
             }
         });
 
@@ -103,10 +113,31 @@ const USSChatView = ({ session, currentUser, otherUser, sessionKey, onExit }) =>
         loadMessages();
     }, [session.sessionId]);
 
+    // Mark as seen when opening
+    useEffect(() => {
+        if (messages.length > 0) {
+            markMessagesAsSeen();
+        }
+    }, [messages.length]);
+
     // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    const markMessagesAsSeen = async () => {
+        try {
+            await fetch(`${API_URL}/api/uss/messages/seen`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: session.sessionId,
+                    sender: otherUser,
+                    receiver: currentUser
+                })
+            });
+        } catch (err) { }
+    };
 
     const loadMessages = async () => {
         try {
@@ -291,12 +322,35 @@ const USSChatView = ({ session, currentUser, otherUser, sessionKey, onExit }) =>
                             <div className="uss-message-content">
                                 <div className="uss-message-text">{msg.decryptedContent}</div>
                                 <div className="uss-message-meta">
+                                    {/* Flow Analyzer button */}
+                                    <button
+                                        onClick={() => setAnalyzerMsg({
+                                            plaintext: msg.decryptedContent,
+                                            content: msg.decryptedContent,
+                                            encryptedRaw: msg.content,
+                                            signature: msg.signature,
+                                            verified: msg.verified,
+                                            morseText: null // computed inside USSFlowAnalyzerModal
+                                        })}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center', opacity: 0.55, color: 'inherit' }}
+                                        title="Analyze Encryption Flow"
+                                    >
+                                        <Activity size={11} />
+                                    </button>
                                     <span className="uss-message-time">
                                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
+                                    {msg.sender === currentUser && (
+                                        <span className={`uss-msg-ticks ${msg.seen ? 'ticks-seen' : msg.delivered ? 'ticks-delivered' : 'ticks-sent'}`}>
+                                            {msg.seen || msg.delivered
+                                                ? <CheckCheck size={14} strokeWidth={2.5} />
+                                                : <Check size={14} strokeWidth={2.5} />
+                                            }
+                                        </span>
+                                    )}
                                     {msg.verified && (
                                         <span className="uss-verified-badge" title="Signature verified">
-                                            ✓
+                                            <ShieldCheck size={11} />
                                         </span>
                                     )}
                                 </div>
@@ -349,7 +403,13 @@ const USSChatView = ({ session, currentUser, otherUser, sessionKey, onExit }) =>
                 message={dialogState.message}
                 onConfirm={dialogState.onConfirm || closeDialog}
             />
-        </div >
+            {analyzerMsg && (
+                <USSFlowAnalyzerModal
+                    message={analyzerMsg}
+                    onClose={() => setAnalyzerMsg(null)}
+                />
+            )}
+        </div>
     );
 };
 

@@ -47,10 +47,10 @@ router.put('/seen', async (req, res) => {
     // Start the ephemeral countdown for any unread ephemeral messages
     await markEphemeralReadAt(sender, receiver);
 
-    // Emit socket event so sender's UI updates
+    // Emit socket event so sender's UI updates (targeted emit to the sender)
     const io = req.app.get('io');
     if (io) {
-      io.emit('messages_seen', { sender, receiver });
+      io.to(`user:${sender}`).emit('messages_seen', { sender, receiver });
     }
     res.json({ success: true });
   } catch (err) {

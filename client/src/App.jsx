@@ -27,7 +27,7 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    const savedUsername = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const savedUsername = localStorage.getItem(SESSION_STORAGE_KEY);
     if (savedUsername) {
       setUsername(savedUsername);
     }
@@ -35,13 +35,17 @@ export default function App() {
 
   const handleLogin = (username) => {
     setUsername(username);
-    sessionStorage.setItem(SESSION_STORAGE_KEY, username);
+    localStorage.setItem(SESSION_STORAGE_KEY, username);
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    // Clear ALL security keys on logout for privacy
     localStorage.removeItem('chatapp_public_key_pem');
     localStorage.removeItem('chatapp_private_key_jwk');
+    localStorage.removeItem('chatapp_signing_public_key_pem');
+    localStorage.removeItem('chatapp_signing_private_key_jwk');
+    
     setUsername(null);
   };
 

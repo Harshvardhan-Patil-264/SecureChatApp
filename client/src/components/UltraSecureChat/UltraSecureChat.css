@@ -1006,21 +1006,25 @@
 }
 
 .uss-message-content {
-    padding: 14px 18px;
+    padding: 10px 14px;
     border-radius: 18px;
     position: relative;
     box-shadow: var(--shadow-card);
+    max-width: 100%;
+    word-break: break-word;
 }
 
 .uss-message-sent .uss-message-content {
-    background: var(--msg-sent-bg);
-    color: var(--msg-sent-text);
+    background: linear-gradient(135deg, #1a3a5c, #1e4080);
+    color: #ffffff;
     border-top-right-radius: 4px;
+    border: 1px solid rgba(58,134,255,0.25);
+    box-shadow: 0 2px 12px rgba(30,64,128,0.4);
 }
 
 .uss-message-received .uss-message-content {
-    background: var(--msg-recv-bg);
-    color: var(--msg-recv-text);
+    background: var(--msg-recv-bg, #1e2535);
+    color: var(--msg-recv-text, #e0e0e0);
     border: 1px solid var(--border-color);
     border-top-left-radius: 4px;
 }
@@ -1035,19 +1039,47 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
-    margin-top: 6px;
+    gap: 4px;
+    margin-top: 4px;
     font-size: 11px;
-    opacity: 0.7;
 }
 
 .uss-message-sent .uss-message-meta {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.uss-message-received .uss-message-meta {
+    color: var(--text-tertiary);
 }
 
 .uss-verified-badge {
     color: inherit;
     font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+.uss-msg-ticks {
+    display: flex;
+    align-items: center;
+    line-height: 1;
+}
+
+.uss-msg-ticks.ticks-sent {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.uss-message-received .uss-msg-ticks.ticks-sent {
+    color: var(--text-tertiary);
+}
+
+.uss-msg-ticks.ticks-delivered {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.uss-msg-ticks.ticks-seen {
+    color: #50C8F4 !important;
+    opacity: 1;
 }
 
 /* Input Area */
@@ -1141,42 +1173,176 @@
    RESPONSIVE (Global Overrides)
    ============================================================================ */
 
-@media (max-width: 600px) {
-    .uss-modal {
-        width: 100%;
-        height: 100%;
-        max-height: 100vh;
-        border-radius: 0;
+@media (max-width: 768px) {
+    .uss-modal, 
+    .uss-passphrase-container, 
+    .uss-alert-container {
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: none !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+        display: flex;
+        flex-direction: column;
+        margin: 0 !important;
     }
 
-    .uss-modal-header {
-        border-radius: 0;
+    /* Ensure overlays don't have padding on mobile for true full-screen */
+    .uss-passphrase-entry,
+    .uss-security-alert {
+        padding: 0 !important;
+    }
+
+    .uss-modal-header,
+    .uss-passphrase-header,
+    .uss-alert-header {
+        border-radius: 0 !important;
+        padding: 12px 20px !important;
+        padding-top: calc(12px + env(safe-area-inset-top)) !important;
+        flex-shrink: 0;
+    }
+
+    .uss-lock-icon {
+        font-size: 28px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .uss-passphrase-header h2 {
+        font-size: 16px !important;
+    }
+
+    .uss-session-info {
+        font-size: 11px !important;
+    }
+
+    .uss-modal-body,
+    .uss-passphrase-body,
+    .uss-alert-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px !important;
+        /* Ensure content doesn't get hidden behind footer when scrolling */
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Hide session details on mobile keyboard open (small height) to save space */
+    @media (max-height: 500px) {
+        .uss-session-details {
+            display: none !important;
+        }
+        .uss-lock-icon {
+            font-size: 24px !important;
+            margin-bottom: 4px !important;
+        }
+        .uss-passphrase-header {
+            padding: 12px 24px !important;
+        }
+    }
+
+    .uss-modal-footer,
+    .uss-passphrase-footer,
+    .uss-alert-footer {
+        border-radius: 0 !important;
+        padding: 20px 24px !important;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+        flex-shrink: 0;
+    }
+
+    .uss-chat-view {
+        height: 100dvh; /* reflows with keyboard */
     }
 
     .uss-chat-header {
-        padding: 16px;
+        padding: 8px 16px !important;
+        min-height: 54px !important;
+        padding-top: calc(8px + env(safe-area-inset-top)) !important;
+    }
+
+    .uss-shield-icon {
+        font-size: 20px !important;
+    }
+
+    .uss-chat-header-info h2 {
+        font-size: 13px !important;
+        letter-spacing: 0.02em !important;
+    }
+
+    .uss-chat-participant {
+        font-size: 10px !important;
+        margin-top: 1px !important;
+    }
+
+    .uss-chat-participant {
+        font-size: 11px;
+    }
+
+    .uss-chat-header-right {
+        gap: 8px;
+    }
+
+    .uss-security-badge {
+        padding: 4px 10px;
+        font-size: 10px;
+        white-space: nowrap;
     }
 
     .uss-security-banner {
+        padding: 8px 12px;
         overflow-x: auto;
         white-space: nowrap;
-        padding: 10px 16px;
+        gap: 16px;
+        justify-content: flex-start;
         -webkit-overflow-scrolling: touch;
     }
 
     .uss-banner-item {
-        margin-right: 16px;
+        flex-shrink: 0;
     }
 
     .uss-messages-area {
-        padding: 16px;
+        padding: 12px;
+        gap: 12px;
     }
 
     .uss-message {
         max-width: 85%;
     }
 
+    .uss-message-content {
+        padding: 10px 14px;
+    }
+
+    .uss-message-text {
+        font-size: 14px;
+    }
+
     .uss-input-area {
-        padding: 16px;
+        padding: 8px 12px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .uss-input-container {
+        padding: 6px 12px;
+        gap: 8px;
+    }
+
+    .uss-message-input {
+        font-size: 14px;
+        padding: 6px 0;
+    }
+
+    .uss-send-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .uss-input-footer {
+        margin-top: 6px;
+    }
+
+    .uss-encryption-indicator {
+        font-size: 10px;
     }
 }

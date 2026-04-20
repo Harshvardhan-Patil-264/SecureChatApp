@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { UserCheck, UserX, Clock, ShieldCheck } from 'lucide-react';
+import { API_URL } from '../config';
 import './Requests.css';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export default function Requests({ username, onAccepted }) {
     const [requests, setRequests] = useState([]);

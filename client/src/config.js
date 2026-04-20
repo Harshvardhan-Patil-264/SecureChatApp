@@ -1,5 +1,4 @@
 // Configuration for API URL
-// Automatically detects if running on localhost or network
-export const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8080'
-    : `http://${window.location.hostname}:8080`;
+// Empty string means it will use relative paths, letting Vite proxy handle the requests
+// This avoids Mixed Content errors when using HTTPS tunnels (ngrok/localtunnel)
+export const API_URL = '';

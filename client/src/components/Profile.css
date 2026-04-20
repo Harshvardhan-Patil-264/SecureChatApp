@@ -270,3 +270,56 @@
 .profile-cancel-btn:hover {
     background: var(--bg-surface-hover);
 }
+
+/* ===========================
+   MOBILE: full-width bottom sheet
+   =========================== */
+@media (max-width: 768px) {
+    .profile-overlay {
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    .profile-panel {
+        width: 100vw !important;
+        max-width: none !important;
+        height: 100dvh !important;
+        border-left: none;
+        border-top: none;
+        border-radius: 0 !important;
+        box-shadow: none;
+        animation: uss-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        margin: 0 !important;
+    }
+
+    .profile-header {
+        padding: 20px 24px 14px;
+        padding-top: calc(20px + env(safe-area-inset-top));
+        border-radius: 0 !important;
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to   { transform: translateY(0);   opacity: 1; }
+    }
+
+    .profile-body {
+        padding: 16px 20px 32px;
+    }
+
+    .profile-header {
+        padding: 18px 20px 14px;
+        border-radius: 20px 20px 0 0;
+    }
+
+    /* Drag handle visual hint */
+    .profile-header::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 2px;
+        margin: 0 auto 14px;
+    }
+}

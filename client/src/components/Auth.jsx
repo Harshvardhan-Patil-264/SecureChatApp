@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { ensureSigningKeyPair, ensureKeyPair } from '../lib/crypto'
+import { GoogleLogin } from '@react-oauth/google'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Shield, Eye, EyeOff, Fingerprint, Lock, ArrowRight, UserPlus, Sun, Moon, Mail, ChevronLeft, KeyRound } from 'lucide-react'
 import './Auth.css'
@@ -143,6 +144,46 @@ export default function Auth({ onLogin, theme, toggleTheme }) {
     setOtp('')
     setOtpStep(false)
   }
+
+  // ─── GOOGLE LOGIN ────────────────────────────────────────────────────────────
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true)
+    try {
+      const { publicKeyPem: signingPublicKey } = await ensureSigningKeyPair()
+      const { publicKeyPem: rsaPublicKey } = await ensureKeyPair()
+
+      const res = await api.post('/auth/google', { 
+        token: credentialResponse.credential,
+        signingPublicKey,
+        rsaPublicKey
+      })
+      
+      const { username: gUsername } = res.data
+      
+      try {
+        await api.put(`/signatures/${gUsername}`, { publicKey: signingPublicKey })
+      } catch (err) {
+        console.log('Signing key update skipped:', err.message)
+      }
+
+      try {
+        await api.put(`/users/${gUsername}/rsa-key`, { rsaPublicKey })
+        console.log('✅ RSA public key saved to database')
+      } catch (err) {
+        console.error('❌ Failed to save RSA key:', err.message)
+      }
+
+      toast.success('Google Login successful!')
+      setTimeout(() => onLogin(gUsername), 700)
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Google Login failed')
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleError = () => {
+    toast.error("Google Authentication Failed");
+  };
 
   // ─── Derived submit handler ──────────────────────────────────────────────────
   const handleFormSubmit = isRegister
@@ -395,6 +436,15 @@ export default function Auth({ onLogin, theme, toggleTheme }) {
               </motion.button>
 
               <div className="divider"><span>Or</span></div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme={theme === 'dark' ? 'filled_black' : 'outline'}
+                />
+              </div>
 
               <motion.button
                 type="button"

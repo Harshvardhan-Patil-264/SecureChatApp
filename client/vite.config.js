@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Allow access from network
     port: 5173,
+    allowedHosts: [
+      'vaseline-entrust-robe.ngrok-free.dev'
+    ],
     proxy: {
       // Proxy API calls to backend (adjust host/port if needed)
       '/api': {

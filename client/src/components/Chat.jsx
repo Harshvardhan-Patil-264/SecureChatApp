@@ -22,7 +22,7 @@ import SecurityAlert from './UltraSecureChat/SecurityAlert';
 import USSChatView from './UltraSecureChat/USSChatView';
 import Profile from './Profile';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText, Timer, Activity } from 'lucide-react';
+import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText, Timer, Activity, ArrowLeft } from 'lucide-react';
 import Requests from './Requests';
 import MediaBubble from './MediaBubble';
 import FlowAnalyzerModal from './FlowAnalyzerModal';
@@ -53,11 +53,15 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   const [myName, setMyName] = useState('');
   const [sidebarTab, setSidebarTab] = useState('all'); // 'all' | 'requests' | 'unread'
   const [pendingCount, setPendingCount] = useState(0);
+  const [requestsKey, setRequestsKey] = useState(0); // forces Requests to re-fetch when a new request arrives
   const [discoverUsers, setDiscoverUsers] = useState([]); // search-discovered users
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const discoverTimeout = useRef(null);
-
+  const mobileMenuRef = useRef(null);
+  const socketRef = useRef(null);
+  const pubKeyCache = useRef({}); // New: Cache for sender public keys to speed up verification
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   // Ephemeral message state (sender-only UI)
@@ -78,6 +82,14 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     return h + 'h' + (m > 0 ? ` ${m}m` : '') + (s > 0 ? ` ${s}s` : '');
   };
 
+  const secondsToLabel = (totalSeconds) => {
+    if (!totalSeconds) return '10s';
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return fmtEphemeralLabel({ h, m, s });
+  };
+
   // Spinner step handlers with wrapping
   const stepEphemeral = (unit, dir) => {
     setEphemeralTime(prev => {
@@ -89,7 +101,6 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     });
   };
 
-  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const messagesInnerRef = useRef(null);
@@ -154,6 +165,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     // Real-time: someone sent us a request
     socketRef.current.on('connection_request', ({ sender }) => {
       setPendingCount(prev => prev + 1);
+      setRequestsKey(prev => prev + 1); // force Requests component to re-fetch
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(`New chat request from ${sender}`, {
           body: 'Open SecureChat to accept or decline',
@@ -208,15 +220,35 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
         let verified = null;
         if (msg.signature && encryptedContent) {
           try {
-            const keyRes = await api.get(`/signatures/${msg.sender}`);
-            if (keyRes.data && keyRes.data.publicKey) {
-              const senderPublicKeyPem = keyRes.data.publicKey;
+            let senderPublicKeyPem = pubKeyCache.current[msg.sender];
+            
+            if (!senderPublicKeyPem) {
+              const keyRes = await api.get(`/signatures/${msg.sender}`);
+              if (keyRes.data && keyRes.data.publicKey) {
+                senderPublicKeyPem = keyRes.data.publicKey;
+                pubKeyCache.current[msg.sender] = senderPublicKeyPem;
+              }
+            }
+
+            if (senderPublicKeyPem) {
               const senderPublicKey = await importSigningPublicKey(senderPublicKeyPem);
               verified = await verifySignature(senderPublicKey, encryptedContent, msg.signature);
             }
           } catch (e) {
             verified = null;
           }
+        }
+
+        // AUTO-READ: If this message is from the person we are currently chatting with,
+        // mark it as seen immediately (both locally and on the server).
+        const isFromCurrentChat = selectedUser && msg.sender === selectedUser.username;
+        if (isFromCurrentChat) {
+          msg.seen = 1;
+          fetch(`${API_URL}/api/messages/seen`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender: msg.sender, receiver: username })
+          }).catch(() => { });
         }
 
         if (sessionKey && msg.msgNo !== undefined && encryptedContent) {
@@ -392,7 +424,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   const handleExitUSSMode = () => {
     setInUSSMode(false);
     setUssSessionKey(null);
-    setUssSession(null);
+    // Keep ussSession so the icon remains visible in the header
   };
 
   const openChat = async (user) => {
@@ -659,7 +691,8 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   return (
     <div className="secure-chat-container">
       {/* LEFT: NAV RAIL + SIDEBAR PANEL */}
-      <div className="sidebar-wrapper">
+      {/* On mobile: sidebar hidden when chat is open, UNLESS user has opened requests tab */}
+      <div className={`sidebar-wrapper ${selectedUser && sidebarTab !== 'requests' ? 'mobile-hidden' : ''}`}>
         {/* Vertical Nav Rail */}
         <motion.div
           className="nav-rail"
@@ -684,7 +717,10 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             <button
               className={`nav-btn${sidebarTab === 'requests' ? ' nav-btn-active' : ''}`}
               title="Requests"
-              onClick={() => setSidebarTab(sidebarTab === 'requests' ? 'all' : 'requests')}
+              onClick={() => {
+                setSidebarTab(sidebarTab === 'requests' ? 'all' : 'requests');
+                if (sidebarTab !== 'requests') setRequestsKey(k => k + 1);
+              }}
             >
               <Bell size={20} />
               {pendingCount > 0 && <span className="nav-badge">{pendingCount}</span>}
@@ -722,8 +758,67 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
           animate={{ x: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
         >
-          {/* Header */}
-          <div className="secure-sidebar-header">
+          {/* ── MOBILE HEADER (WhatsApp-style, hidden on desktop) ── */}
+          <div className="mobile-sidebar-header">
+            <button
+              className="mob-avatar-btn"
+              onClick={() => setShowProfile(true)}
+              style={{ backgroundColor: getAvatarColor(username) }}
+            >
+              {getInitials(myName || username)}
+            </button>
+            <span className="mob-app-title">
+              SecureChat
+              {totalUnread > 0 && <span className="header-unread-badge">{totalUnread}</span>}
+            </span>
+            <div className="mob-header-actions">
+              {/* Theme toggle */}
+              <button className="mob-icon-btn" title="Toggle Theme" onClick={toggleTheme}>
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              {/* USS */}
+              <button className="mob-icon-btn uss-nav-btn" title="Ultra Secure Room" onClick={() => setShowUSSModal(true)}>
+                <ShieldAlert size={20} />
+              </button>
+              {/* Requests / Bell */}
+              <button
+                className={`mob-icon-btn${sidebarTab === 'requests' ? ' mob-icon-active' : ''}`}
+                title="Requests"
+                onClick={() => {
+                  const goingToRequests = sidebarTab !== 'requests';
+                  setSidebarTab(goingToRequests ? 'requests' : 'all');
+                  if (goingToRequests) {
+                    setRequestsKey(k => k + 1);
+                    // Slide sidebar into view by clearing selected chat on mobile
+                    setSelectedUser(null);
+                  }
+                }}
+                style={{ position: 'relative' }}
+              >
+                <Bell size={20} />
+                {pendingCount > 0 && <span className="nav-badge">{pendingCount}</span>}
+              </button>
+              {/* Three-dot menu */}
+              <div style={{ position: 'relative' }} ref={mobileMenuRef}>
+                <button className="mob-icon-btn" title="More" onClick={() => setShowMobileMenu(v => !v)}>
+                  <MoreVertical size={20} />
+                </button>
+                {showMobileMenu && (
+                  <div className="mob-dropdown">
+                    <button className="mob-dropdown-item" onClick={() => { setShowProfile(true); setShowMobileMenu(false); }}>
+                      <User size={15} /> My Profile
+                    </button>
+                    <button className="mob-dropdown-item" onClick={() => { onLogout(); setShowMobileMenu(false); }}>
+                      <LogOut size={15} /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── DESKTOP HEADER (hidden on mobile) ── */}
+          <div className="secure-sidebar-header desktop-only-header">
             <div className="secure-brand">
               <div className="secure-brand-text">
                 <h2>
@@ -752,7 +847,10 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             <button className={`sidebar-tab${sidebarTab === 'all' ? ' active' : ''}`} onClick={() => { setSidebarTab('all'); setDiscoverUsers([]); setSearchQuery(''); }}>
               <Users size={14} /> All
             </button>
-            <button className={`sidebar-tab${sidebarTab === 'requests' ? ' active' : ''}`} onClick={() => setSidebarTab('requests')}>
+            <button className={`sidebar-tab${sidebarTab === 'requests' ? ' active' : ''}`} onClick={() => {
+              setSidebarTab('requests');
+              setRequestsKey(k => k + 1);
+            }}>
               <Bell size={14} /> Requests {pendingCount > 0 && <span className="tab-badge">{pendingCount}</span>}
             </button>
             <button className={`sidebar-tab${sidebarTab === 'unread' ? ' active' : ''}`} onClick={() => setSidebarTab('unread')}>
@@ -764,6 +862,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
           {sidebarTab === 'requests' ? (
             <div className="users-list">
               <Requests
+                key={requestsKey}
                 username={username}
                 onAccepted={(sender) => {
                   setPendingCount(prev => Math.max(0, prev - 1));
@@ -878,7 +977,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       </div>
 
       {/* RIGHT CHAT AREA */}
-      <div className="secure-chat-area">
+      <div className={`secure-chat-area ${!selectedUser ? 'mobile-hidden' : ''}`}>
         {!selectedUser ? (
           <motion.div
             className="empty-state"
@@ -904,10 +1003,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             className="chat-workspace-inner"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+            style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
           >
             <div className="chat-header">
               <div className="chat-header-user">
+                <button className="mobile-back-btn" onClick={() => setSelectedUser(null)}>
+                  <ArrowLeft size={20} />
+                </button>
                 <div className="user-avatar" style={{ backgroundColor: getAvatarColor(selectedUser.username) }}>
                   {getInitials(selectedUser.name || selectedUser.username)}
                 </div>
@@ -949,7 +1051,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                       border: '1px solid var(--accent-primary)'
                     }}
                   >
-                    <ShieldAlert size={16} /> Unlock Secure Chat
+                    <ShieldAlert size={16} /> <span className="uss-unlock-label">Unlock Secure Chat</span>
                   </button>
                 )}
                 <button className="header-action-btn" title="More options">
@@ -988,22 +1090,29 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                             : <span className="message-text">{raw}</span>;
                         })()}
 
-                        {/* Only show verified badges on non-deleted messages */}
-                        {!msg.isDeleted && !expiredIds.has(msg.id) && msg.verified === true && (
-                          <span className="verified-badge" title="Message signature verified">
-                            <ShieldCheck size={12} /> Verified
-                          </span>
-                        )}
-                        {!msg.isDeleted && !expiredIds.has(msg.id) && msg.verified === false && (
-                          <span className="unverified-badge" title="Signature verification failed">
-                            <ShieldAlert size={12} /> Unverified
-                          </span>
-                        )}
+                        {/* Only show verified badges on non-deleted, non-media text messages */}
+                        {(() => {
+                          const raw = msg.content || msg.message || '';
+                          let isMedia = false;
+                          try { const p = JSON.parse(raw); if (p._media) isMedia = true; } catch (_) { }
+                          if (msg.isDeleted || expiredIds.has(msg.id) || isMedia) return null;
+                          if (msg.verified === true) return (
+                            <span className="verified-badge" title="Message signature verified">
+                              <ShieldCheck size={12} /> Verified
+                            </span>
+                          );
+                          if (msg.verified === false) return (
+                            <span className="unverified-badge" title="Signature verification failed">
+                              <ShieldAlert size={12} /> Unverified
+                            </span>
+                          );
+                          return null;
+                        })()}
 
                         {/* Sender-only: small ephemeral indicator (only while message is still alive) */}
-                        {msg.sender === username && msg.isEphemeral && !msg.isDeleted && !expiredIds.has(msg.id) && (
-                          <span className="ephemeral-badge" title={`Self-destructs ${msg.ephemeralDuration >= 3600 ? msg.ephemeralDuration / 3600 + 'h' : msg.ephemeralDuration + 's'} after read`}>
-                            <Timer size={11} /> {msg.ephemeralDuration >= 86400 ? '24h' : msg.ephemeralDuration >= 3600 ? '1h' : '10s'}
+                        {msg.sender === username && !!msg.isEphemeral && !msg.isDeleted && !expiredIds.has(msg.id) && (
+                          <span className="ephemeral-badge" title={`Self-destructs ${secondsToLabel(msg.ephemeralDuration)} after read`}>
+                            <Timer size={11} /> {secondsToLabel(msg.ephemeralDuration)}
                           </span>
                         )}
 
@@ -1081,32 +1190,24 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
 
                 {/* HH:MM:SS spinner picker */}
                 {showDurationPicker && (
-                  <div style={{
-                    position: 'absolute', bottom: '115%', left: '50%', transform: 'translateX(-50%)',
-                    background: 'linear-gradient(145deg, #1a2535, #141e2d)',
-                    border: '1px solid rgba(255,107,107,0.2)',
-                    borderRadius: 16, padding: '16px 20px 14px',
-                    boxShadow: '0 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
-                    zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                    minWidth: 210, userSelect: 'none'
-                  }}>
+                  <div className="ephemeral-duration-picker">
                     {/* Title */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="ephemeral-picker-title">
                       <Timer size={13} color="#FF6B6B" />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#FF6B6B', letterSpacing: '0.09em', textTransform: 'uppercase' }}>
+                      <span className="ephemeral-title-text">
                         Self-destruct after
                       </span>
                     </div>
 
                     {/* Spinner columns */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="ephemeral-spinner-container">
                       {[['h', 'HRS', 23], ['m', 'MIN', 59], ['s', 'SEC', 59]].map(([unit, label], idx) => (
                         <div key={unit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {idx > 0 && (
-                            <span style={{ color: 'rgba(255,107,107,0.4)', fontWeight: 800, fontSize: 22, lineHeight: 1, alignSelf: 'center', marginBottom: 2 }}>:</span>
+                            <span className="ephemeral-spinner-divider" style={{ color: 'rgba(255,107,107,0.4)', fontWeight: 800, fontSize: 22, lineHeight: 1, alignSelf: 'center', marginBottom: 2 }}>:</span>
                           )}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em' }}>{label}</span>
+                          <div className="ephemeral-spinner-column">
+                            <span className="ephemeral-spinner-label">{label}</span>
 
                             {/* Up chevron — uses holdTimerRef so interval survives re-renders */}
                             <button
@@ -1121,25 +1222,10 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                                 holdTimerRef.current = setInterval(() => stepEphemeral(unit, 1), 120);
                               }}
                               onTouchEnd={() => clearInterval(holdTimerRef.current)}
-                              style={{
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                color: 'rgba(255,107,107,0.7)', padding: '2px 8px',
-                                fontSize: 13, lineHeight: 1
-                              }}
+                              className="ephemeral-spinner-btn"
                             >▲</button>
 
-                            {/* Value chip — pure div, no input */}
-                            <div style={{
-                              width: 48, height: 48,
-                              background: 'rgba(255,255,255,0.05)',
-                              border: '1px solid rgba(255,107,107,0.25)',
-                              borderRadius: 10,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 22, fontWeight: 800, color: '#fff',
-                              fontFamily: "'SF Mono', 'Fira Code', monospace",
-                              letterSpacing: '-0.5px',
-                              boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.3)'
-                            }}>
+                            <div className="ephemeral-time-display">
                               {String(ephemeralTime[unit]).padStart(2, '0')}
                             </div>
 
@@ -1156,11 +1242,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                                 holdTimerRef.current = setInterval(() => stepEphemeral(unit, -1), 120);
                               }}
                               onTouchEnd={() => clearInterval(holdTimerRef.current)}
-                              style={{
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                color: 'rgba(255,107,107,0.7)', padding: '2px 8px',
-                                fontSize: 13, lineHeight: 1
-                              }}
+                              className="ephemeral-spinner-btn"
                             >▼</button>
                           </div>
                         </div>

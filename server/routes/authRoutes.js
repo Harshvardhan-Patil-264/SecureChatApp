@@ -12,6 +12,12 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const activeUserManager = require('../services/activeUserManager');
+const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
+
+// Initialize Google OAuth Client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'dummy-client-id');
+
 const messageService = require('../services/messageService');
 const { sendOtpEmail } = require('../services/emailService');
 
@@ -214,6 +220,70 @@ router.post('/login', async (req, res) => {
 });
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────
+
+// ─── POST /api/auth/google ────────────────────────────────────────────────────
+
+router.post('/google', async (req, res) => {
+  try {
+    const { token, rsaPublicKey, signingPublicKey } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Google token required' });
+    }
+
+    // Verify token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID || 'dummy-client-id',
+    });
+    const payload = ticket.getPayload();
+    const googleId = payload['sub'];
+    const email = payload['email'];
+    const name = payload['name'];
+
+    // Check if user exists by google_id or email
+    let [rows] = await db.query('SELECT * FROM users WHERE google_id = ? OR email = ?', [googleId, email]);
+    
+    let username;
+    
+    if (rows.length > 0) {
+      // User exists
+      const user = rows[0];
+      username = user.username;
+      
+      // Update google_id if it was missing (e.g., they previously signed up with email)
+      if (!user.google_id) {
+        await db.query('UPDATE users SET google_id = ? WHERE username = ?', [googleId, username]);
+      }
+    } else {
+      // Create new user securely
+      username = email.split('@')[0] + '_' + crypto.randomBytes(3).toString('hex');
+      
+      // Insert user
+      await db.query(
+        'INSERT INTO users (username, name, email, google_id, signature_key_public) VALUES (?, ?, ?, ?, ?)',
+        [username, name, email, googleId, signingPublicKey || null]
+      );
+    }
+    
+    // Process login exactly like traditional login
+    activeUserManager.userConnected(username, `http-login-${Date.now()}`);
+
+    const undelivered = await messageService.getUndeliveredMessages(username);
+    await messageService.markAsDelivered(undelivered);
+
+    return res.json({
+      username,
+      email,
+      message: 'Google Login successful',
+      offlineMessages: undelivered
+    });
+
+  } catch (err) {
+    console.error('Google Auth Error:', err);
+    return res.status(500).json({ error: 'Failed to authenticate with Google' });
+  }
+});
+
 
 router.post('/logout', (req, res) => {
   try {
