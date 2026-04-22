@@ -1455,7 +1455,16 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                 className="message-input"
                 style={ephemeralMode ? { borderColor: 'rgba(255,107,107,0.4)' } : {}}
               />
-              <button className="send-btn" onClick={sendMessage} disabled={!newMessage.trim()}>
+              <button 
+                className="send-btn" 
+                onClick={sendMessage} 
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  if (newMessage.trim()) sendMessage();
+                }}
+                disabled={!newMessage.trim()}
+              >
                 <Send size={18} />
               </button>
             </div>
