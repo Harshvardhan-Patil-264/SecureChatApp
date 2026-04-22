@@ -22,7 +22,7 @@ router.get('/all', async (req, res) => {
          FROM messages m 
          WHERE m.sender = u.username 
            AND m.receiver = ? 
-           AND m.delivered = 0
+           AND m.seen = 0
         ) AS unread_count,
         (SELECT content 
          FROM messages m2 

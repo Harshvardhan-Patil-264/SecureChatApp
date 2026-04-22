@@ -22,7 +22,7 @@ import SecurityAlert from './UltraSecureChat/SecurityAlert';
 import USSChatView from './UltraSecureChat/USSChatView';
 import Profile from './Profile';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText, Timer, Activity, ArrowLeft } from 'lucide-react';
+import { Shield, Settings, LogOut, Search, Plus, MessageSquare, ShieldCheck, ShieldAlert, Lock, MoreVertical, Paperclip, Send, Sun, Moon, User, Check, CheckCheck, UserPlus, Users, Bell, Image, Video, Music, X, Download, FileText, Timer, Activity, ArrowLeft, Bot, RefreshCw } from 'lucide-react';
 import Requests from './Requests';
 import MediaBubble from './MediaBubble';
 import FlowAnalyzerModal from './FlowAnalyzerModal';
@@ -105,6 +105,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
   const messagesContainerRef = useRef(null);
   const messagesInnerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const chatInputRef = useRef(null);
   const holdTimerRef = useRef(null); // for ephemeral spinner long-press
 
   // Auto-scroll: instant via container scrollTop — never gets cancelled by re-renders
@@ -115,6 +116,20 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     if (force || isNearBottom) {
       el.scrollTop = el.scrollHeight;
     }
+  };
+
+  const handleFlushCache = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch (_) {}
+    window.location.reload(true);
   };
 
   useEffect(() => {
@@ -130,6 +145,30 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     observer.observe(innerEl);
     return () => observer.disconnect();
   }, [selectedUser]); // Run when selectedUser changes (DOM renders the container)
+
+  // Auto-focus chat input when a user is selected
+  useEffect(() => {
+    if (selectedUser) {
+      // Small timeout to wait for the UI animation to settle
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 50);
+    }
+  }, [selectedUser]);
+
+  // Mobile Keyboard Support: listen to visualViewport resize
+  // When keyboard opens on phone, it triggers this resize event, so we scroll to bottom perfectly.
+  useEffect(() => {
+    const handleViewportResize = () => {
+      // Force scroll to bottom when keyboard slides up
+      scrollToBottom(true);
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      return () => window.visualViewport.removeEventListener('resize', handleViewportResize);
+    }
+  }, []);
 
   useEffect(() => {
     if (!username) return;
@@ -197,6 +236,22 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     };
   }, [username]);
 
+  // ── Device Back Button: go to people list instead of exiting the app ────────
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (selectedUser) {
+        // Intercept: close chat and stay in app
+        setSelectedUser(null);
+        setInUSSMode(false);
+        // Re-push the state so a second back doesn't exit either until user is null
+        // (handled by next openChat call)
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [selectedUser]);
+
+  // Load messages + session key when selected user changes
   useEffect(() => {
     if (!selectedUser) return;
     setMessages([]);
@@ -431,6 +486,15 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     setSelectedUser(user);
     await checkUSSSession(user);
 
+    // Tell AI panel to close on mobile when a chat opens
+    window.dispatchEvent(new CustomEvent('chat-selected'));
+
+    // Push a history entry so the device back button returns here
+    // instead of closing/leaving the app
+    if (window.history.state?.chatOpen !== true) {
+      window.history.pushState({ chatOpen: true }, '');
+    }
+
     // Instantly clear unread badge in local state — no reload needed
     setUsers(prev => prev.map(u =>
       u.username === user.username ? { ...u, unreadCount: 0 } : u
@@ -501,9 +565,9 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     const MAX = 50 * 1024 * 1024;
     if (file.size > MAX) { alert('File too large (max 50 MB)'); return; }
 
-    const allowed = ['image/', 'video/', 'audio/'];
+    const allowed = ['image/', 'video/', 'audio/', 'application/', 'text/'];
     if (!allowed.some(t => file.type.startsWith(t))) {
-      alert('Only image, video, and audio files are supported'); return;
+      alert('Only images, videos, audio, and document files are supported'); return;
     }
 
     setMediaUploading(true);
@@ -530,6 +594,19 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       const encryptedContent = await encryptMessage(sessionKey, msgNo, meta);
 
       // 4. Send via existing messages API
+      const optimisticMsg = {
+        sender: username,
+        receiver: selectedUser.username,
+        content: meta,
+        _media: true,
+        msgNo,
+        timestamp: new Date().toISOString(),
+        seen: 0,
+        delivered: 0,
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
+      scrollToBottom(true);
+
       const res = await fetch(`${API_URL}/api/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -538,13 +615,15 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       if (!res.ok) throw new Error('Send failed');
       const data = await res.json();
 
-      // 5. Show locally as media bubble immediately
-      setMessages(prev => [...prev, {
-        ...data,
-        content: meta,        // raw JSON — MediaBubble will parse it
-        _media: true,
-        timestamp: data.timestamp || new Date().toISOString(),
-      }]);
+      setMessages((prev) => prev.map(m => 
+        m.msgNo === msgNo ? { 
+          ...m, 
+          ...data,
+          content: m.content, // Preserve plaintext media metadata
+          seen: m.seen || data.seen,
+          delivered: m.delivered || data.delivered
+        } : m
+      ));
     } catch (err) {
       console.error('Media send error', err);
       alert('Failed to send media: ' + err.message);
@@ -584,6 +663,34 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       }),
     };
 
+    // 1. OPTIMISTIC UI: Instantly show message in UI
+    const textContent = newMessage.trim();
+    const wasEphemeral = ephemeralMode;
+    const dur = ephemeralDuration;
+    
+    setNewMessage("");
+    if (ephemeralMode) setEphemeralMode(false);
+
+    const optimisticMsg = {
+      sender: username,
+      receiver: selectedUser.username,
+      content: textContent,
+      message: encryptedContent,
+      msgNo,
+      verified: signature ? true : null,
+      timestamp: new Date().toISOString(),
+      isEphemeral: wasEphemeral,
+      ephemeralDuration: wasEphemeral ? dur : null,
+      encryptedRaw: encryptedContent,
+      morseText,
+      seen: 0,
+      delivered: 0,
+    };
+    
+    setMessages((prev) => [...prev, optimisticMsg]);
+    scrollToBottom(true);
+
+    // 2. BACKGROUND FETCH: Send to server
     try {
       const res = await fetch(`${API_URL}/api/messages`, {
         method: "POST",
@@ -592,21 +699,21 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       });
       if (!res.ok) throw new Error("Failed to send message");
       const data = await res.json();
-      const displayed = {
-        ...data,
-        content: newMessage.trim(),
-        verified: signature ? true : null,
-        timestamp: data.timestamp || new Date().toISOString(),
-        isEphemeral: ephemeralMode,
-        ephemeralDuration: ephemeralMode ? ephemeralDuration : null,
-        encryptedRaw: encryptedContent,
-        morseText
-      };
-      setMessages((prev) => [...prev, displayed]);
-      setNewMessage("");
-      // Reset ephemeral mode after each send so user must consciously re-enable
-      if (ephemeralMode) setEphemeralMode(false);
-    } catch (err) { }
+      
+      // 3. MERGE STATE: Update the optimistic message with DB data, 
+      // BUT preserve seen/delivered in case the socket already flipped them!
+      setMessages((prev) => prev.map(m => 
+        m.msgNo === msgNo ? { 
+          ...m, 
+          ...data,
+          content: m.content, // Preserve plaintext message content!
+          seen: m.seen || data.seen,
+          delivered: m.delivered || data.delivered
+        } : m
+      ));
+    } catch (err) { 
+      console.error('Failed to send message:', err);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -714,6 +821,14 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             <button className="nav-btn uss-nav-btn" title="Ultra Secure Room" onClick={() => setShowUSSModal(true)}>
               <ShieldAlert size={20} />
             </button>
+            {/* CipherAI */}
+            <button
+              className="nav-btn ai-nav-btn"
+              title="CipherAI by Harsh Patil"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-ai-panel'))}
+            >
+              <Bot size={20} strokeWidth={2} />
+            </button>
             <button
               className={`nav-btn${sidebarTab === 'requests' ? ' nav-btn-active' : ''}`}
               title="Requests"
@@ -737,6 +852,9 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
 
           {/* Bottom: Profile + Logout */}
           <div className="nav-rail-bottom">
+            <button className="nav-btn" title="Flush Cache & Reload" onClick={handleFlushCache}>
+              <RefreshCw size={20} />
+            </button>
             <button className="nav-btn" title="Logout" onClick={onLogout}>
               <LogOut size={20} />
             </button>
@@ -780,6 +898,14 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
               <button className="mob-icon-btn uss-nav-btn" title="Ultra Secure Room" onClick={() => setShowUSSModal(true)}>
                 <ShieldAlert size={20} />
               </button>
+              {/* CipherAI */}
+              <button
+                className="mob-icon-btn"
+                title="CipherAI"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-ai-panel'))}
+              >
+                <Bot size={20} strokeWidth={2} />
+              </button>
               {/* Requests / Bell */}
               <button
                 className={`mob-icon-btn${sidebarTab === 'requests' ? ' mob-icon-active' : ''}`}
@@ -805,6 +931,9 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
                 </button>
                 {showMobileMenu && (
                   <div className="mob-dropdown">
+                    <button className="mob-dropdown-item" onClick={() => { handleFlushCache(); setShowMobileMenu(false); }}>
+                      <RefreshCw size={15} /> Flush Cache
+                    </button>
                     <button className="mob-dropdown-item" onClick={() => { setShowProfile(true); setShowMobileMenu(false); }}>
                       <User size={15} /> My Profile
                     </button>
@@ -858,7 +987,8 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
             </button>
           </div>
 
-          {/* Content area */}
+          {/* Content area — wrapped in relative container for the WhatsApp-style FAB */}
+          <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {sidebarTab === 'requests' ? (
             <div className="users-list">
               <Requests
@@ -872,7 +1002,7 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
               />
             </div>
           ) : (
-            <div className="users-list">
+            <div className="users-list" style={{ paddingBottom: '80px' }}>
               {/* Discover search results */}
               {searchQuery && (
                 <div className="discover-section">
@@ -973,6 +1103,18 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
               </AnimatePresence>
             </div>
           )}
+
+            {/* ── CipherAI FAB — WhatsApp-style, only on people list tab ── */}
+            {sidebarTab !== 'requests' && (
+              <button
+                className="sidebar-ai-fab"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-ai-panel'))}
+                title="CipherAI by Harsh Patil"
+              >
+                <Bot size={24} color="#fff" strokeWidth={2} />
+              </button>
+            )}
+          </div>
         </motion.div>
       </div>
 
@@ -1150,13 +1292,13 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,video/*,audio/*"
+                accept="image/*,video/*,audio/*,application/*,text/*"
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
               />
               <button
                 className="input-action-btn"
-                title="Attach image / video / audio (encrypted)"
+                title="Attach file / media (encrypted)"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={mediaUploading || !sessionKey}
                 style={{ position: 'relative' }}
@@ -1301,11 +1443,15 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
 
 
               <input
+                ref={chatInputRef}
                 type="text"
                 placeholder={ephemeralMode ? `Ephemeral message (${fmtEphemeralLabel(ephemeralTime)})…` : 'Type an encrypted message...'}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
+                onFocus={() => {
+                  setTimeout(() => scrollToBottom(true), 320);
+                }}
                 className="message-input"
                 style={ephemeralMode ? { borderColor: 'rgba(255,107,107,0.4)' } : {}}
               />

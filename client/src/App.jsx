@@ -3,17 +3,47 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Auth from './components/Auth';
 import Chat from './components/Chat';
+import AIAssistant from './components/AIAssistant';
 import './index.css';
 
 const SESSION_STORAGE_KEY = 'chatapp_username';
 const THEME_STORAGE_KEY = 'chatapp_theme';
+const APP_VERSION = '4'; // bump this whenever you deploy major changes
+const VERSION_KEY = 'chatapp_version';
 
 export default function App() {
   const [username, setUsername] = useState(null);
   const [theme, setTheme] = useState(() => {
-    // Persist theme preference across sessions
     return localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
   });
+
+  // ── Version-based cache invalidation ───────────────────────────────────────
+  // If an old user has a different (stale) version stored, nuke all caches
+  // and reload once so they get fresh JS/CSS immediately.
+  useEffect(() => {
+    const storedVersion = localStorage.getItem(VERSION_KEY);
+    if (storedVersion !== APP_VERSION) {
+      localStorage.setItem(VERSION_KEY, APP_VERSION);
+      // Unregister all service workers and clear every cache bucket
+      const clearAndReload = async () => {
+        try {
+          if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(r => r.unregister()));
+          }
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+        } catch (_) {}
+        // Only hard-reload if this isn't the first-ever visit
+        if (storedVersion !== null) {
+          window.location.reload(true);
+        }
+      };
+      clearAndReload();
+    }
+  }, []);
 
   // Apply theme to <html> element
   useEffect(() => {
@@ -32,6 +62,7 @@ export default function App() {
       setUsername(savedUsername);
     }
   }, []);
+
 
   const handleLogin = (username) => {
     setUsername(username);
@@ -64,6 +95,8 @@ export default function App() {
       ) : (
         <Chat username={username} onLogout={handleLogout} theme={theme} toggleTheme={toggleTheme} />
       )}
+      {/* AI Assistant FAB — rendered at root so position:fixed works correctly */}
+      {username && <AIAssistant />}
     </div>
   );
 }
