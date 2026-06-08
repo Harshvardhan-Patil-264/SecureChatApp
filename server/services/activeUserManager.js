@@ -10,8 +10,9 @@ const userSockets = new Map(); // username -> Set(socketId)
 function userConnected(username, socketId) {
   if (!username) return;
   if (!userSockets.has(username)) userSockets.set(username, new Set());
-  userSockets.get(username).add(socketId);
-  console.log('✅ User connected:', username);
+  const set = userSockets.get(username);
+  set.add(socketId);
+  console.log(`✅ User connected: ${username} (Active sessions: ${set.size})`);
 }
 
 function userDisconnected(username, socketId) {
@@ -19,8 +20,12 @@ function userDisconnected(username, socketId) {
   const set = userSockets.get(username);
   if (!set) return;
   set.delete(socketId);
-  if (set.size === 0) userSockets.delete(username);
-  console.log('❌ User disconnected:', username);
+  if (set.size === 0) {
+    userSockets.delete(username);
+    console.log(`❌ User disconnected: ${username} (No sessions left)`);
+  } else {
+    console.log(`⚠️ User disconnected from one device: ${username} (Remaining sessions: ${set.size})`);
+  }
 }
 
 function isUserActive(username) {

@@ -17,7 +17,9 @@ router.get('/:userA/:userB', async (req, res) => {
     const [rows] = await db.query(
       `SELECT id, sender, receiver,
               CASE WHEN content IS NULL THEN '' ELSE content END AS message,
-              msg_no AS msgNo, signature, verified, timestamp, delivered, seen,
+              msg_no AS msgNo, signature, verified, timestamp,
+              delivered+0 AS delivered,
+              seen+0 AS seen,
               is_ephemeral AS isEphemeral,
               ephemeral_duration AS ephemeralDuration,
               read_at AS readAt,

@@ -191,6 +191,11 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       .then(d => setPendingCount((d.requests || []).length))
       .catch(() => { });
 
+    // Guard: don't create a second socket if one already exists
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+
     socketRef.current = io(API_URL, {
       transports: ['websocket'],
       reconnectionDelay: 500,
@@ -198,6 +203,11 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     });
 
     socketRef.current.on("connect", () => {
+      socketRef.current.emit("register", { username });
+    });
+
+    // On reconnect, re-register so the server rebuilds the activeUsers list for us
+    socketRef.current.on('reconnect', () => {
       socketRef.current.emit("register", { username });
     });
 
@@ -224,14 +234,27 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
         }).catch(() => { });
     });
 
-    // Real-time presence — server emits on every connect/disconnect
+    // Real-time presence — server broadcasts full list on every connect/disconnect
     socketRef.current.on('activeUsers', (usernameList) => {
       setOnlineUsers(new Set(Array.isArray(usernameList) ? usernameList : []));
+    });
+
+    // Fine-grained: one specific user just came online
+    socketRef.current.on('user_online', (payload) => {
+      const who = payload && payload.username;
+      if (who) setOnlineUsers(prev => { const n = new Set(prev); n.add(who); return n; });
+    });
+
+    // Fine-grained: one specific user just went offline — instant local update
+    socketRef.current.on('user_offline', (payload) => {
+      const who = payload && payload.username;
+      if (who) setOnlineUsers(prev => { const n = new Set(prev); n.delete(who); return n; });
     });
 
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
+        // Do NOT null the ref here — other effects' cleanup still call .off() on it
       }
     };
   }, [username]);
@@ -379,6 +402,20 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     };
     socketRef.current.on('messages_seen', handleSeen);
 
+    // When a previously-offline receiver comes online and gets our message,
+    // upgrade from 1 tick (sent) to 2 ticks (delivered) in real time
+    const handleDelivered = ({ msgNo, id, receiver }) => {
+      setMessages(prev => prev.map(m => {
+        // Match by msgNo (for messages we just sent) or by id (for older ones)
+        const match = (msgNo && m.msgNo === msgNo) || (id && m.id === id);
+        if (match && m.sender === username && m.receiver === receiver) {
+          return { ...m, delivered: true };
+        }
+        return m;
+      }));
+    };
+    socketRef.current.on('message_delivered', handleDelivered);
+
     // When server wipes an ephemeral message, replace its content with the deleted placeholder
     const handleMessageExpired = ({ id }) => {
       setExpiredIds(prev => new Set(prev).add(id));
@@ -389,9 +426,10 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     socketRef.current.on('message_expired', handleMessageExpired);
 
     return () => {
-      socketRef.current.off("message", handleMessage);
-      socketRef.current.off('messages_seen', handleSeen);
-      socketRef.current.off('message_expired', handleMessageExpired);
+      socketRef.current?.off("message", handleMessage);
+      socketRef.current?.off('messages_seen', handleSeen);
+      socketRef.current?.off('message_delivered', handleDelivered);
+      socketRef.current?.off('message_expired', handleMessageExpired);
     };
   }, [selectedUser, sessionKey]);
 
@@ -667,6 +705,8 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
     const textContent = newMessage.trim();
     const wasEphemeral = ephemeralMode;
     const dur = ephemeralDuration;
+    // If the receiver is online right now, we know delivery will succeed → 2 ticks
+    const receiverIsOnline = onlineUsers.has(selectedUser.username);
     
     setNewMessage("");
     if (ephemeralMode) setEphemeralMode(false);
@@ -684,7 +724,9 @@ export default function Chat({ username, onLogout, theme, toggleTheme }) {
       encryptedRaw: encryptedContent,
       morseText,
       seen: 0,
-      delivered: 0,
+      // If receiver is currently online, optimistically show 2 ticks (delivered)
+      // If offline, show 1 tick until they come online and message_delivered fires
+      delivered: receiverIsOnline ? true : false,
     };
     
     setMessages((prev) => [...prev, optimisticMsg]);

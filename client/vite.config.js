@@ -7,7 +7,7 @@ export default defineConfig({
     host: '0.0.0.0', // Allow access from network
     port: 3000,
     allowedHosts: [
-      'vaseline-entrust-robe.ngrok-free.dev'
+      'motor-powwow-figment.ngrok-free.dev'
     ],
     proxy: {
       // Proxy API calls to backend (adjust host/port if needed)

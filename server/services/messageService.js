@@ -36,7 +36,15 @@ async function saveMessageToDb(messageObj) {
  * Get undelivered messages for a receiver.
  */
 async function getUndeliveredMessages(receiver) {
-  const [rows] = await db.query('SELECT * FROM messages WHERE receiver = ? AND delivered = FALSE ORDER BY timestamp ASC', [receiver]);
+  const [rows] = await db.query(
+    `SELECT id, sender, receiver, content, msg_no, signature, verified,
+            type, timestamp, delivered+0 AS delivered, seen+0 AS seen,
+            is_ephemeral, ephemeral_duration, read_at
+     FROM messages
+     WHERE receiver = ? AND delivered = FALSE
+     ORDER BY timestamp ASC`,
+    [receiver]
+  );
   return rows;
 }
 
@@ -63,6 +71,7 @@ async function markAsDelivered(messages) {
  */
 async function sendOrStoreMessage(io, messageObj) {
   const receiver = messageObj.receiver;
+  const sender = messageObj.sender;
   const ts = new Date();
   messageObj.timestamp = ts;
 
@@ -81,6 +90,17 @@ async function sendOrStoreMessage(io, messageObj) {
 
   // DB write happens right after — does not block delivery
   const saved = await saveMessageToDb(messageObj);
+
+  // Notify sender in real-time: their message was delivered (2 ticks)
+  // Only fire when actually delivered so sender can upgrade 1-tick → 2-ticks instantly
+  if (messageObj.delivered && io && sender) {
+    io.to(`user:${sender}`).emit('message_delivered', {
+      msgNo: saved.msgNo,
+      id: saved.id,
+      receiver
+    });
+  }
+
   return saved;
 }
 
