@@ -3,33 +3,27 @@
  * Send security alert emails for Ultra Secure Chat
  */
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
+function getResend() {
+    return new Resend(process.env.RESEND_API_KEY);
+}
+
+// Fallback sender — Resend allows onboarding@resend.dev without a custom domain
+const FROM_EMAIL = process.env.EMAIL_FROM || 'SecureChat <onboarding@resend.dev>';
 
 /**
  * Create email transporter
  * Configure with your email service credentials
  */
-function createTransporter() {
-    // For development: Use ethereal.email (fake SMTP)
-    // For production: Use Gmail, SendGrid, or your SMTP server
-
-    const port = parseInt(process.env.EMAIL_PORT) || 465;
-    const secure = process.env.EMAIL_SECURE !== undefined
-        ? process.env.EMAIL_SECURE === 'true'
-        : port === 465;
-
-    return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port,
-        secure,
-        auth: {
-            user: process.env.EMAIL_USER || 'your-email@gmail.com',
-            pass: process.env.EMAIL_PASS || 'your-app-password'
-        },
-        tls: {
-            rejectUnauthorized: false
-        }
-    });
+// Resend API helper — sends email via HTTP, no SMTP ports needed
+async function sendViaResend({ to, subject, html, attachments }) {
+    const resend = getResend();
+    const payload = { from: FROM_EMAIL, to, subject, html };
+    if (attachments) payload.attachments = attachments;
+    const { data, error } = await resend.emails.send(payload);
+    if (error) throw new Error(error.message);
+    return data;
 }
 
 /**
@@ -247,31 +241,18 @@ function getSecurityAlertTemplate(sessionId, userA, userB) {
  */
 async function sendSecurityEmail(recipientEmail, recipientName, zipBuffer, sessionId, userA, userB) {
     try {
-        const transporter = createTransporter();
-
-        const mailOptions = {
-            from: `"SecureChat Security" <${process.env.EMAIL_USER || 'security@securechat.app'}>`,
+        const data = await sendViaResend({
             to: recipientEmail,
             subject: '[SecureChat Alert] Your Passphrase May Be Compromised',
             html: getSecurityAlertTemplate(sessionId, userA, userB),
-            attachments: [
-                {
-                    filename: `secure_chat_${sessionId}.zip`,
-                    content: zipBuffer,
-                    contentType: 'application/zip'
-                }
-            ]
-        };
-
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`📧 Security email sent to ${recipientEmail}: ${info.messageId}`);
-
-        return {
-            success: true,
-            messageId: info.messageId,
-            recipient: recipientEmail
-        };
-
+            attachments: [{
+                filename: `secure_chat_${sessionId}.zip`,
+                content: zipBuffer.toString('base64'),
+                type: 'application/zip'
+            }]
+        });
+        console.log(`📧 Security email sent to ${recipientEmail}:`, data?.id);
+        return { success: true, messageId: data?.id, recipient: recipientEmail };
     } catch (error) {
         console.error(`❌ Failed to send email to ${recipientEmail}:`, error);
         throw error;
@@ -284,29 +265,7 @@ async function sendSecurityEmail(recipientEmail, recipientName, zipBuffer, sessi
  * @returns {Promise<object>} Result
  */
 async function sendTestEmail(recipientEmail) {
-    try {
-        const transporter = createTransporter();
 
-        const mailOptions = {
-            from: `"SecureChat" <${process.env.EMAIL_USER}>`,
-            to: recipientEmail,
-            subject: 'SecureChat Email Configuration Test',
-            html: `
-                <h2>✅ Email Configuration Successful!</h2>
-                <p>Your SecureChat email service is properly configured.</p>
-                <p>Timestamp: ${new Date().toISOString()}</p>
-            `
-        };
-
-        const info = await transporter.sendMail(mailOptions);
-        console.log('✅ Test email sent:', info.messageId);
-
-        return { success: true, messageId: info.messageId };
-
-    } catch (error) {
-        console.error('❌ Test email failed:', error);
-        throw error;
-    }
 }
 
 /**
@@ -318,7 +277,6 @@ async function sendTestEmail(recipientEmail) {
  */
 async function sendOtpEmail(recipientEmail, otp, type) {
     const isRegister = type === 'REGISTER';
-    const transporter = createTransporter();
 
     const html = `
 <!DOCTYPE html>
@@ -366,16 +324,13 @@ async function sendOtpEmail(recipientEmail, otp, type) {
 </body>
 </html>`.trim();
 
-    const mailOptions = {
-        from: `"SecureChat" <${process.env.EMAIL_USER}>`,
+    const data = await sendViaResend({
         to: recipientEmail,
         subject: `${otp} is your SecureChat ${isRegister ? 'registration' : 'login'} code`,
         html
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`📧 OTP email (${type}) sent to ${recipientEmail}: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    });
+    console.log(`📧 OTP email (${type}) sent to ${recipientEmail}:`, data?.id);
+    return { success: true, messageId: data?.id };
 }
 
 module.exports = {
