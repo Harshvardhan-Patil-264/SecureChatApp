@@ -13,13 +13,21 @@ function createTransporter() {
     // For development: Use ethereal.email (fake SMTP)
     // For production: Use Gmail, SendGrid, or your SMTP server
 
+    const port = parseInt(process.env.EMAIL_PORT) || 465;
+    const secure = process.env.EMAIL_SECURE !== undefined
+        ? process.env.EMAIL_SECURE === 'true'
+        : port === 465;
+
     return nodemailer.createTransport({
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: process.env.EMAIL_PORT || 587,
-        secure: false, // true for 465, false for other ports
+        port,
+        secure,
         auth: {
             user: process.env.EMAIL_USER || 'your-email@gmail.com',
             pass: process.env.EMAIL_PASS || 'your-app-password'
+        },
+        tls: {
+            rejectUnauthorized: false
         }
     });
 }
